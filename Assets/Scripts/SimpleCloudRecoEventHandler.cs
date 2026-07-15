@@ -1,20 +1,39 @@
 using UnityEngine;
 using Vuforia;
-using static UnityEngine.CullingGroup;
-using static Vuforia.CloudRecoBehaviour;
 
 public class SimpleCloudRecoEventHandler : MonoBehaviour
 {
     CloudRecoBehaviour mCloudRecoBehaviour;
     bool mIsScanning = false;
     string mTargetMetadata = "";
+    GameObject mCurrentPageContent;
 
+    [Header("Vuforia")]
     public ImageTargetBehaviour ImageTargetTemplate;
+
+    [Header("Story Pages")]
+    public PageContent[] Pages;
+    public AudioSource NarrationAudioSource;
+
+    [System.Serializable]
+    public class PageContent
+    {
+        public string Metadata;
+        public GameObject ContentPrefab;
+        public AudioClip NarrationClip;
+    }
 
     // Register cloud reco callbacks
     void Awake()
     {
         mCloudRecoBehaviour = GetComponent<CloudRecoBehaviour>();
+        if (mCloudRecoBehaviour == null)
+        {
+            Debug.LogError("SimpleCloudRecoEventHandler requires a CloudRecoBehaviour on the same GameObject.");
+            enabled = false;
+            return;
+        }
+
         mCloudRecoBehaviour.RegisterOnInitializedEventHandler(OnInitialized);
         mCloudRecoBehaviour.RegisterOnInitErrorEventHandler(OnInitError);
         mCloudRecoBehaviour.RegisterOnUpdateErrorEventHandler(OnUpdateError);
@@ -24,6 +43,9 @@ public class SimpleCloudRecoEventHandler : MonoBehaviour
     //Unregister cloud reco callbacks when the handler is destroyed
     void OnDestroy()
     {
+        if (mCloudRecoBehaviour == null)
+            return;
+
         mCloudRecoBehaviour.UnregisterOnInitializedEventHandler(OnInitialized);
         mCloudRecoBehaviour.UnregisterOnInitErrorEventHandler(OnInitError);
         mCloudRecoBehaviour.UnregisterOnUpdateErrorEventHandler(OnUpdateError);
@@ -53,7 +75,7 @@ public class SimpleCloudRecoEventHandler : MonoBehaviour
 
         if (scanning)
         {
-            // Clear all known targets
+            ClearCurrentPage();
         }
     }
 
@@ -72,6 +94,85 @@ public class SimpleCloudRecoEventHandler : MonoBehaviour
             /* Enable the new result with the same ImageTargetBehaviour: */
             mCloudRecoBehaviour.EnableObservers(cloudRecoSearchResult, ImageTargetTemplate.gameObject);
         }
+
+        ShowPageContent(mTargetMetadata);
+    }
+
+    public void ScanNextPage()
+    {
+        ClearCurrentPage();
+        mTargetMetadata = "";
+        mIsScanning = true;
+
+        if (mCloudRecoBehaviour == null)
+            return;
+
+        mCloudRecoBehaviour.enabled = true;
+    }
+
+    public void RestartScanning()
+    {
+        ScanNextPage();
+    }
+
+    void ShowPageContent(string targetMetadata)
+    {
+        ClearCurrentPage();
+
+        PageContent page = FindPageContent(targetMetadata);
+        if (page == null)
+        {
+            Debug.LogWarning("No page content configured for metadata: " + targetMetadata);
+            return;
+        }
+
+        if (page.ContentPrefab != null && ImageTargetTemplate != null)
+        {
+            mCurrentPageContent = Instantiate(page.ContentPrefab, ImageTargetTemplate.transform, false);
+        }
+
+        PlayNarration(page.NarrationClip);
+    }
+
+    PageContent FindPageContent(string targetMetadata)
+    {
+        if (Pages == null)
+            return null;
+
+        for (int i = 0; i < Pages.Length; i++)
+        {
+            if (Pages[i] != null && Pages[i].Metadata == targetMetadata)
+                return Pages[i];
+        }
+
+        return null;
+    }
+
+    void PlayNarration(AudioClip clip)
+    {
+        if (NarrationAudioSource == null)
+            return;
+
+        NarrationAudioSource.Stop();
+        NarrationAudioSource.clip = clip;
+
+        if (clip != null)
+            NarrationAudioSource.Play();
+    }
+
+    void ClearCurrentPage()
+    {
+        if (mCurrentPageContent != null)
+        {
+            Destroy(mCurrentPageContent);
+            mCurrentPageContent = null;
+        }
+
+        if (NarrationAudioSource != null)
+        {
+            NarrationAudioSource.Stop();
+            NarrationAudioSource.clip = null;
+        }
     }
 
     void OnGUI()
@@ -86,9 +187,7 @@ public class SimpleCloudRecoEventHandler : MonoBehaviour
         {
             if (GUI.Button(new Rect(100, 300, 200, 50), "Restart Scanning"))
             {
-                // Reset Behaviour
-                mCloudRecoBehaviour.enabled = true;
-                mTargetMetadata = "";
+                ScanNextPage();
             }
         }
     }
