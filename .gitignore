@@ -1,0 +1,40 @@
+# Unity generated folders
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Ll]ogs/
+[Uu]ser[Ss]ettings/
+[Mm]emoryCaptures/
+[Rr]ecordings/
+
+# Builds
+[Bb]uild/
+[Bb]uilds/
+
+# IDE files
+.vs/
+.idea/
+.vscode/
+*.csproj
+*.sln
+*.suo
+*.user
+*.userprefs
+*.pidb
+*.booproj
+
+# Operating system files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Unity crash files
+sysinfo.txt
+
+# Large local Unity packages
+Packages/com.ptc.vuforia.engine-*.tgz
+
+# APK and application builds
+*.apk
+*.aab
+*.exe
