@@ -334,7 +334,7 @@ PrefabInstance:
     - target: {fileID: 3230334071272407216, guid: dd7c16cacd0eb524091cbb829b144d94,
         type: 3}
       propertyPath: m_LocalPosition.z
-      value: 14.206097
+      value: 22.07
       objectReference: {fileID: 0}
     - target: {fileID: 3230334071272407216, guid: dd7c16cacd0eb524091cbb829b144d94,
         type: 3}
@@ -388,6 +388,21 @@ PrefabInstance:
         type: 3}
       propertyPath: m_Name
       value: SM_Env_Ground_Mound_Large_01
+      objectReference: {fileID: 0}
+    - target: {fileID: 3369971450677853853, guid: 70d480ee3ff06b841b6e998587e025ac,
+        type: 3}
+      propertyPath: m_LocalScale.x
+      value: 0.47556
+      objectReference: {fileID: 0}
+    - target: {fileID: 3369971450677853853, guid: 70d480ee3ff06b841b6e998587e025ac,
+        type: 3}
+      propertyPath: m_LocalScale.y
+      value: 0.47556
+      objectReference: {fileID: 0}
+    - target: {fileID: 3369971450677853853, guid: 70d480ee3ff06b841b6e998587e025ac,
+        type: 3}
+      propertyPath: m_LocalScale.z
+      value: 0.47556
       objectReference: {fileID: 0}
     - target: {fileID: 3369971450677853853, guid: 70d480ee3ff06b841b6e998587e025ac,
         type: 3}
