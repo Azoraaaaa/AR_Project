@@ -277,7 +277,7 @@ MonoBehaviour:
       type: 3}
     NarrationClip: {fileID: 0}
   - Metadata: abcd
-    ContentPrefab: {fileID: -8391222552659086748, guid: 09dc83e45f67f8b4aa52dd39dff1e127,
+    ContentPrefab: {fileID: 7210203359792740281, guid: bee51470a6e7df74ab2d47a2c6e93b8c,
       type: 3}
     NarrationClip: {fileID: 0}
   NarrationAudioSource: {fileID: 687446935}
