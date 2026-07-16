@@ -5,22 +5,28 @@ public enum MemoryType
 {
     Ball,
     Bed,
-    Collar
+    Collar,
+    Food
 }
 
-public class MemoryClickable : MonoBehaviour, IPointerClickHandler
+public class MemoryClickable :
+    MonoBehaviour,
+    IPointerClickHandler
 {
     [Header("Memory Settings")]
-    [SerializeField] private Page1MemoryManager memoryManager;
-    [SerializeField] private MemoryType memoryType;
+    [SerializeField]
+    private Page1MemoryManager memoryManager;
+
+    [SerializeField]
+    private MemoryType memoryType;
 
     private bool hasBeenUsed;
     private Collider clickCollider;
 
     private void Awake()
     {
-
-        clickCollider = GetComponent<Collider>();
+        clickCollider =
+            GetComponent<Collider>();
 
         if (clickCollider == null)
         {
@@ -31,11 +37,13 @@ public class MemoryClickable : MonoBehaviour, IPointerClickHandler
         }
     }
 
-    public void OnPointerClick(PointerEventData eventData)
+    public void OnPointerClick(
+        PointerEventData eventData)
     {
-
         if (hasBeenUsed)
+        {
             return;
+        }
 
         if (memoryManager == null)
         {
@@ -47,16 +55,17 @@ public class MemoryClickable : MonoBehaviour, IPointerClickHandler
             return;
         }
 
-
         bool accepted =
-            memoryManager.TryPlayMemory(memoryType);
+            memoryManager.TryPlayMemory(
+                memoryType
+            );
 
         if (!accepted)
+        {
             return;
-
+        }
 
         hasBeenUsed = true;
-
 
         if (clickCollider != null)
         {
@@ -64,7 +73,8 @@ public class MemoryClickable : MonoBehaviour, IPointerClickHandler
         }
 
         Debug.Log(
-            $"{gameObject.name} activated {memoryType} memory."
+            $"{gameObject.name} activated " +
+            $"{memoryType} memory."
         );
     }
 }
