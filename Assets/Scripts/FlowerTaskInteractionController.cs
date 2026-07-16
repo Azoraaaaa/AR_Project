@@ -4,6 +4,9 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
+#if ENABLE_INPUT_SYSTEM
+using UnityEngine.InputSystem;
+#endif
 
 public class FlowerTaskInteractionController : MonoBehaviour
 {
@@ -39,12 +42,16 @@ public class FlowerTaskInteractionController : MonoBehaviour
 
     [Header("Camera")]
     public Camera InteractionCamera;
+    public bool AutoFindInteractionCamera = true;
+    public string CameraTag = "MainCamera";
     public LayerMask InteractionLayers = ~0;
     public float RaycastDistance = 100f;
+    public bool BlockWorldTouchesOverUi = false;
 
     [Header("Flower")]
     public GameObject FlowerObject;
     public bool HideFlowerDuringTask = true;
+    public bool AutoCreateMissingColliders = true;
 
     [Header("Drop Zone")]
     public Collider DropZoneCollider;
@@ -57,6 +64,7 @@ public class FlowerTaskInteractionController : MonoBehaviour
 
     [Header("Tasks")]
     public TaskStep[] Tasks = new TaskStep[0];
+    public bool ActivateOrbParentsWhenShown = true;
 
     [Header("Full Screen Panel")]
     public CanvasGroup FullScreenPanel;
@@ -66,6 +74,14 @@ public class FlowerTaskInteractionController : MonoBehaviour
 
     [Header("Testing")]
     public Button TaskCompleteButton;
+    public bool AutoFindTaskCompleteButton = true;
+    public string TaskCompleteButtonName = "TaskCompleteButton";
+    public bool AutoConfigureUiCanvases = true;
+    public bool UseTaskCompleteButtonFallbackClick = true;
+
+    [Header("Debug")]
+    public bool LogTouchDebug = true;
+    public bool ShowDebugOverlay = true;
 
     InteractionState mState = InteractionState.WaitingForFirstFlowerTouch;
     readonly Dictionary<GameObject, bool> mOriginalModelStates = new Dictionary<GameObject, bool>();
@@ -74,6 +90,8 @@ public class FlowerTaskInteractionController : MonoBehaviour
     int mCurrentTaskIndex = -1;
     bool mIsBusy;
     bool mIsDraggingFlower;
+    string mLastDebugMessage = "";
+    Button mRegisteredTaskCompleteButton;
 
     int TaskCount
     {
@@ -91,37 +109,66 @@ public class FlowerTaskInteractionController : MonoBehaviour
 
     void Awake()
     {
-        if (InteractionCamera == null)
-            InteractionCamera = Camera.main;
+        ResolveInteractionCamera();
+        ResolveTaskCompleteButton();
+        ConfigureUiCanvases();
 
         CacheOriginalModelStates();
 
-        if (TaskCompleteButton != null)
-            TaskCompleteButton.onClick.AddListener(CompleteCurrentTask);
+        RegisterTaskCompleteButtonListener();
+    }
+
+    void OnEnable()
+    {
+        ResolveInteractionCamera();
+        ResolveTaskCompleteButton();
+        ConfigureUiCanvases();
+        RegisterTaskCompleteButtonListener();
     }
 
     void Start()
     {
+        PrepareClickableObjects();
+        ValidateSetup();
         ResetInteraction();
     }
 
     void OnDestroy()
     {
-        if (TaskCompleteButton != null)
-            TaskCompleteButton.onClick.RemoveListener(CompleteCurrentTask);
+        UnregisterTaskCompleteButtonListener();
     }
 
     void Update()
     {
-        if (mIsBusy || InteractionCamera == null)
+        if (mIsBusy)
             return;
+
+        if (InteractionCamera == null)
+            ResolveInteractionCamera();
+
+        if (InteractionCamera == null)
+            return;
+
+        ResolveTaskCompleteButton();
+        RegisterTaskCompleteButtonListener();
+        ConfigureUiCanvases();
 
         PointerInput pointer;
         if (!TryGetPrimaryPointer(out pointer))
             return;
 
-        if (pointer.Down && IsPointerOverUi(pointer.PointerId))
+        if (pointer.Down && UseTaskCompleteButtonFallbackClick && IsTaskCompleteButtonScreenHit(pointer.Position))
+        {
+            LogDebug("Task complete button clicked by fallback screen check.");
+            CompleteCurrentTask();
             return;
+        }
+
+        if (pointer.Down && BlockWorldTouchesOverUi && IsPointerOverUi(pointer.PointerId))
+        {
+            LogDebug("Touch ignored because it is over UI.");
+            return;
+        }
 
         if (pointer.Down)
             HandlePointerDown(pointer.Position);
@@ -168,10 +215,13 @@ public class FlowerTaskInteractionController : MonoBehaviour
 
     void HandlePointerDown(Vector2 screenPosition)
     {
+        LogDebug("Pointer down. Current state: " + mState);
+
         if (mState == InteractionState.WaitingForFirstFlowerTouch)
         {
             if (IsObjectHit(screenPosition, FlowerObject))
             {
+                LogDebug("Flower touched. Showing available orbs.");
                 ShowAvailableOrbs();
                 mState = HasUnfinishedTask() ? InteractionState.ChoosingOrb : InteractionState.FlowerDraggable;
             }
@@ -183,7 +233,10 @@ public class FlowerTaskInteractionController : MonoBehaviour
         {
             int taskIndex = GetHitTaskOrbIndex(screenPosition);
             if (taskIndex >= 0)
+            {
+                LogDebug("Orb touched. Starting task index: " + taskIndex);
                 StartCoroutine(StartTaskRoutine(taskIndex));
+            }
 
             return;
         }
@@ -207,14 +260,15 @@ public class FlowerTaskInteractionController : MonoBehaviour
         mState = InteractionState.ShowingPanel;
         mCurrentTaskIndex = taskIndex;
 
-        SetAllOrbsVisible(false);
-        yield return ShowTimedPanel(task.IntroImage, task.IntroText, task.IntroPanelSeconds);
+        yield return ShowTimedPanel(task.IntroImage, task.IntroText, task.IntroPanelSeconds, () =>
+        {
+            SetAllOrbsVisible(false);
+            SetMainModelsVisible(false);
+            SetAllTaskRootsVisible(false);
 
-        SetMainModelsVisible(false);
-        SetAllTaskRootsVisible(false);
-
-        if (task.TaskRoot != null)
-            task.TaskRoot.SetActive(true);
+            if (task.TaskRoot != null)
+                task.TaskRoot.SetActive(true);
+        });
 
         SetTaskCompleteButtonVisible(true);
         mState = InteractionState.RunningTask;
@@ -229,26 +283,35 @@ public class FlowerTaskInteractionController : MonoBehaviour
 
         TaskStep task = mCurrentTaskIndex >= 0 && mCurrentTaskIndex < TaskCount ? Tasks[mCurrentTaskIndex] : null;
 
-        if (task != null && task.TaskRoot != null)
-            task.TaskRoot.SetActive(false);
-
-        if (task != null)
-            yield return ShowTimedPanel(task.CompletionImage, task.CompletionText, task.CompletionPanelSeconds);
-
         if (task != null)
         {
-            task.Completed = true;
+            yield return ShowTimedPanel(task.CompletionImage, task.CompletionText, task.CompletionPanelSeconds, () =>
+            {
+                if (task.TaskRoot != null)
+                    task.TaskRoot.SetActive(false);
 
-            if (task.OrbObject != null)
-                task.OrbObject.SetActive(false);
+                task.Completed = true;
+
+                if (task.OrbObject != null)
+                    task.OrbObject.SetActive(false);
+
+                SetMainModelsVisible(true);
+
+                if (HasUnfinishedTask())
+                    ShowAvailableOrbs();
+                else
+                    SetAllOrbsVisible(false);
+            });
+        }
+        else
+        {
+            SetMainModelsVisible(true);
         }
 
         mCurrentTaskIndex = -1;
-        SetMainModelsVisible(true);
 
         if (HasUnfinishedTask())
         {
-            ShowAvailableOrbs();
             mState = InteractionState.ChoosingOrb;
         }
         else
@@ -260,10 +323,13 @@ public class FlowerTaskInteractionController : MonoBehaviour
         mIsBusy = false;
     }
 
-    IEnumerator ShowTimedPanel(Sprite image, string message, float seconds)
+    IEnumerator ShowTimedPanel(Sprite image, string message, float seconds, System.Action onFullyVisible = null)
     {
         if (FullScreenPanel == null)
         {
+            if (onFullyVisible != null)
+                onFullyVisible();
+
             yield return new WaitForSeconds(Mathf.Max(0f, seconds));
             yield break;
         }
@@ -278,6 +344,10 @@ public class FlowerTaskInteractionController : MonoBehaviour
             PanelText.text = message;
 
         yield return FadePanel(1f);
+
+        if (onFullyVisible != null)
+            onFullyVisible();
+
         yield return new WaitForSeconds(Mathf.Max(0f, seconds));
         yield return FadePanel(0f);
     }
@@ -373,6 +443,29 @@ public class FlowerTaskInteractionController : MonoBehaviour
     {
         pointer = new PointerInput();
 
+#if ENABLE_INPUT_SYSTEM
+        if (Touchscreen.current != null && Touchscreen.current.primaryTouch.press.isPressed)
+        {
+            pointer.Position = Touchscreen.current.primaryTouch.position.ReadValue();
+            pointer.PointerId = 0;
+            pointer.Down = Touchscreen.current.primaryTouch.press.wasPressedThisFrame;
+            pointer.Held = Touchscreen.current.primaryTouch.press.isPressed;
+            pointer.Up = Touchscreen.current.primaryTouch.press.wasReleasedThisFrame;
+            return pointer.Down || pointer.Held || pointer.Up;
+        }
+
+        if (Mouse.current != null)
+        {
+            pointer.Position = Mouse.current.position.ReadValue();
+            pointer.PointerId = -1;
+            pointer.Down = Mouse.current.leftButton.wasPressedThisFrame;
+            pointer.Held = Mouse.current.leftButton.isPressed;
+            pointer.Up = Mouse.current.leftButton.wasReleasedThisFrame;
+            return pointer.Down || pointer.Held || pointer.Up;
+        }
+#endif
+
+#if ENABLE_LEGACY_INPUT_MANAGER
         if (Input.touchCount > 0)
         {
             Touch touch = Input.GetTouch(0);
@@ -390,6 +483,9 @@ public class FlowerTaskInteractionController : MonoBehaviour
         pointer.Held = Input.GetMouseButton(0);
         pointer.Up = Input.GetMouseButtonUp(0);
         return pointer.Down || pointer.Held || pointer.Up;
+#else
+        return false;
+#endif
     }
 
     bool IsPointerOverUi(int pointerId)
@@ -406,7 +502,21 @@ public class FlowerTaskInteractionController : MonoBehaviour
     bool IsObjectHit(Vector2 screenPosition, GameObject target)
     {
         RaycastHit hit;
-        return target != null && TryRaycast(screenPosition, out hit) && IsTransformUnderRoot(hit.transform, target.transform);
+        if (target == null)
+        {
+            LogDebug("Raycast target is not assigned.");
+            return false;
+        }
+
+        if (!TryRaycast(screenPosition, out hit))
+        {
+            LogDebug("Raycast did not hit anything. Check Camera, Collider, Layer, and RaycastDistance.");
+            return false;
+        }
+
+        bool hitTarget = IsTransformUnderRoot(hit.transform, target.transform);
+        LogDebug("Raycast hit: " + hit.transform.name + ". Expected: " + target.name + ". Match: " + hitTarget);
+        return hitTarget;
     }
 
     int GetHitTaskOrbIndex(Vector2 screenPosition)
@@ -432,6 +542,242 @@ public class FlowerTaskInteractionController : MonoBehaviour
     {
         Ray ray = InteractionCamera.ScreenPointToRay(screenPosition);
         return Physics.Raycast(ray, out hit, RaycastDistance, InteractionLayers, QueryTriggerInteraction.Collide);
+    }
+
+    bool IsTaskCompleteButtonScreenHit(Vector2 screenPosition)
+    {
+        if (mState != InteractionState.RunningTask || TaskCompleteButton == null)
+            return false;
+
+        if (!TaskCompleteButton.gameObject.activeInHierarchy || !TaskCompleteButton.interactable)
+            return false;
+
+        RectTransform rectTransform = TaskCompleteButton.GetComponent<RectTransform>();
+        if (rectTransform == null)
+            return false;
+
+        Canvas canvas = TaskCompleteButton.GetComponentInParent<Canvas>();
+        Camera eventCamera = GetCanvasEventCamera(canvas);
+        return RectTransformUtility.RectangleContainsScreenPoint(rectTransform, screenPosition, eventCamera);
+    }
+
+    Camera GetCanvasEventCamera(Canvas canvas)
+    {
+        if (canvas == null || canvas.renderMode == RenderMode.ScreenSpaceOverlay)
+            return null;
+
+        if (canvas.worldCamera != null)
+            return canvas.worldCamera;
+
+        return InteractionCamera;
+    }
+
+    void ResolveTaskCompleteButton()
+    {
+        if (!AutoFindTaskCompleteButton || TaskCompleteButton != null || string.IsNullOrEmpty(TaskCompleteButtonName))
+            return;
+
+        GameObject buttonObject = GameObject.Find(TaskCompleteButtonName);
+        if (buttonObject != null)
+            TaskCompleteButton = buttonObject.GetComponent<Button>();
+
+        if (TaskCompleteButton == null)
+        {
+            Button[] buttons = Resources.FindObjectsOfTypeAll<Button>();
+            for (int i = 0; i < buttons.Length; i++)
+            {
+                if (buttons[i] == null || buttons[i].name != TaskCompleteButtonName)
+                    continue;
+
+                if (!buttons[i].gameObject.scene.IsValid())
+                    continue;
+
+                TaskCompleteButton = buttons[i];
+                break;
+            }
+        }
+
+        if (TaskCompleteButton != null)
+            LogDebug("Found task complete button by name: " + TaskCompleteButtonName);
+    }
+
+    void RegisterTaskCompleteButtonListener()
+    {
+        if (TaskCompleteButton == null || mRegisteredTaskCompleteButton == TaskCompleteButton)
+            return;
+
+        UnregisterTaskCompleteButtonListener();
+        TaskCompleteButton.onClick.AddListener(CompleteCurrentTask);
+        mRegisteredTaskCompleteButton = TaskCompleteButton;
+    }
+
+    void UnregisterTaskCompleteButtonListener()
+    {
+        if (mRegisteredTaskCompleteButton == null)
+            return;
+
+        mRegisteredTaskCompleteButton.onClick.RemoveListener(CompleteCurrentTask);
+        mRegisteredTaskCompleteButton = null;
+    }
+
+    void ConfigureUiCanvases()
+    {
+        if (!AutoConfigureUiCanvases)
+            return;
+
+        ConfigureCanvasForObject(FullScreenPanel != null ? FullScreenPanel.gameObject : null);
+        ConfigureCanvasForObject(TaskCompleteButton != null ? TaskCompleteButton.gameObject : null);
+    }
+
+    void ConfigureCanvasForObject(GameObject uiObject)
+    {
+        if (uiObject == null)
+            return;
+
+        Canvas canvas = uiObject.GetComponentInParent<Canvas>(true);
+        if (canvas == null)
+            return;
+
+        if (canvas.GetComponent<GraphicRaycaster>() == null)
+        {
+            canvas.gameObject.AddComponent<GraphicRaycaster>();
+            LogDebug("Added GraphicRaycaster to canvas: " + canvas.name);
+        }
+
+        if (canvas.renderMode != RenderMode.ScreenSpaceOverlay && InteractionCamera != null && canvas.worldCamera != InteractionCamera)
+        {
+            canvas.worldCamera = InteractionCamera;
+            LogDebug("Assigned UI canvas camera: " + canvas.name + " -> " + InteractionCamera.name);
+        }
+    }
+
+    void ResolveInteractionCamera()
+    {
+        if (!AutoFindInteractionCamera || InteractionCamera != null)
+            return;
+
+        if (!string.IsNullOrEmpty(CameraTag))
+        {
+            GameObject taggedCamera = null;
+            try
+            {
+                taggedCamera = GameObject.FindGameObjectWithTag(CameraTag);
+            }
+            catch (UnityException)
+            {
+                Debug.LogWarning("FlowerTaskInteractionController: CameraTag is not defined: " + CameraTag);
+            }
+
+            if (taggedCamera != null)
+                InteractionCamera = taggedCamera.GetComponent<Camera>();
+        }
+
+        if (InteractionCamera == null)
+            InteractionCamera = Camera.main;
+
+        if (InteractionCamera == null)
+        {
+            Camera[] cameras = Camera.allCameras;
+            for (int i = 0; i < cameras.Length; i++)
+            {
+                if (cameras[i] != null && cameras[i].isActiveAndEnabled)
+                {
+                    InteractionCamera = cameras[i];
+                    break;
+                }
+            }
+        }
+
+        if (InteractionCamera != null)
+            LogDebug("Using interaction camera: " + InteractionCamera.name);
+    }
+
+    void ValidateSetup()
+    {
+        ResolveInteractionCamera();
+
+        LogDebug("Controller is running. State: " + mState);
+
+        if (InteractionCamera == null)
+            Debug.LogWarning("FlowerTaskInteractionController: InteractionCamera is not assigned and Camera.main was not found.");
+
+        if (FlowerObject == null)
+            Debug.LogWarning("FlowerTaskInteractionController: FlowerObject is not assigned.");
+        else if (FlowerObject.GetComponentInChildren<Collider>() == null)
+            Debug.LogWarning("FlowerTaskInteractionController: FlowerObject has no Collider in itself or its children. It cannot be clicked.");
+
+        for (int i = 0; i < TaskCount; i++)
+        {
+            if (Tasks[i] == null || Tasks[i].OrbObject == null)
+                continue;
+
+            if (Tasks[i].OrbObject.GetComponentInChildren<Collider>() == null)
+                Debug.LogWarning("FlowerTaskInteractionController: OrbObject has no Collider and cannot be clicked: " + Tasks[i].OrbObject.name);
+        }
+    }
+
+    void LogDebug(string message)
+    {
+        mLastDebugMessage = message;
+
+        if (LogTouchDebug)
+            Debug.Log("FlowerTaskInteractionController: " + message);
+    }
+
+    void PrepareClickableObjects()
+    {
+        if (!AutoCreateMissingColliders)
+            return;
+
+        EnsureCollider(FlowerObject);
+
+        for (int i = 0; i < TaskCount; i++)
+        {
+            if (Tasks[i] != null)
+                EnsureCollider(Tasks[i].OrbObject);
+        }
+    }
+
+    void EnsureCollider(GameObject target)
+    {
+        if (target == null || target.GetComponentInChildren<Collider>(true) != null)
+            return;
+
+        Renderer[] renderers = target.GetComponentsInChildren<Renderer>(true);
+        if (renderers.Length == 0)
+        {
+            Debug.LogWarning("FlowerTaskInteractionController: Cannot auto-create Collider because no Renderer was found on " + target.name);
+            return;
+        }
+
+        Bounds bounds = renderers[0].bounds;
+        for (int i = 1; i < renderers.Length; i++)
+            bounds.Encapsulate(renderers[i].bounds);
+
+        BoxCollider collider = target.AddComponent<BoxCollider>();
+        collider.center = target.transform.InverseTransformPoint(bounds.center);
+
+        Vector3 localSize = target.transform.InverseTransformVector(bounds.size);
+        collider.size = new Vector3(Mathf.Abs(localSize.x), Mathf.Abs(localSize.y), Mathf.Abs(localSize.z));
+
+        LogDebug("Auto-created BoxCollider on " + target.name);
+    }
+
+    void OnGUI()
+    {
+        if (!ShowDebugOverlay)
+            return;
+
+        string cameraName = InteractionCamera != null ? InteractionCamera.name : "None";
+        string flowerName = FlowerObject != null ? FlowerObject.name : "None";
+        string debugText =
+            "Flower Interaction Debug\n" +
+            "State: " + mState + "\n" +
+            "Camera: " + cameraName + "\n" +
+            "Flower: " + flowerName + "\n" +
+            "Last: " + mLastDebugMessage;
+
+        GUI.Box(new Rect(20, 20, 430, 120), debugText);
     }
 
     bool IsTransformUnderRoot(Transform child, Transform root)
@@ -487,18 +833,51 @@ public class FlowerTaskInteractionController : MonoBehaviour
         for (int i = 0; i < TaskCount; i++)
         {
             if (Tasks[i] != null && Tasks[i].OrbObject != null)
-                Tasks[i].OrbObject.SetActive(visible);
+                SetOrbVisible(Tasks[i].OrbObject, visible);
         }
     }
 
     void ShowAvailableOrbs()
     {
+        if (TaskCount == 0)
+        {
+            Debug.LogWarning("FlowerTaskInteractionController: No Tasks are configured, so no orbs can be shown.");
+            return;
+        }
+
+        int visibleOrbCount = 0;
+
         for (int i = 0; i < TaskCount; i++)
         {
             TaskStep task = Tasks[i];
-            if (task != null && task.OrbObject != null)
-                task.OrbObject.SetActive(!task.Completed);
+            if (task == null)
+            {
+                Debug.LogWarning("FlowerTaskInteractionController: Task " + i + " is empty.");
+                continue;
+            }
+
+            if (task.OrbObject == null)
+            {
+                Debug.LogWarning("FlowerTaskInteractionController: Task " + i + " has no OrbObject assigned.");
+                continue;
+            }
+
+            bool shouldShow = !task.Completed;
+            SetOrbVisible(task.OrbObject, shouldShow);
+
+            if (shouldShow)
+                visibleOrbCount++;
+
+            LogDebug(
+                "Orb " + i +
+                " visible=" + shouldShow +
+                ", activeSelf=" + task.OrbObject.activeSelf +
+                ", activeInHierarchy=" + task.OrbObject.activeInHierarchy +
+                ", enabledRenderers=" + CountEnabledRenderers(task.OrbObject) +
+                ", position=" + task.OrbObject.transform.position);
         }
+
+        LogDebug("Available orb count: " + visibleOrbCount);
     }
 
     bool HasUnfinishedTask()
@@ -516,6 +895,54 @@ public class FlowerTaskInteractionController : MonoBehaviour
     {
         if (TaskCompleteButton != null)
             TaskCompleteButton.gameObject.SetActive(visible);
+    }
+
+    int CountEnabledRenderers(GameObject root)
+    {
+        if (root == null)
+            return 0;
+
+        Renderer[] renderers = root.GetComponentsInChildren<Renderer>(true);
+        int count = 0;
+        for (int i = 0; i < renderers.Length; i++)
+        {
+            if (renderers[i] != null && renderers[i].enabled)
+                count++;
+        }
+
+        return count;
+    }
+
+    void SetOrbVisible(GameObject orbObject, bool visible)
+    {
+        if (orbObject == null)
+            return;
+
+        if (visible && ActivateOrbParentsWhenShown)
+            ActivateParentsUpToController(orbObject.transform);
+
+        orbObject.SetActive(visible);
+    }
+
+    void ActivateParentsUpToController(Transform child)
+    {
+        if (child == null || !child.IsChildOf(transform))
+        {
+            LogDebug("Orb is not under this controller, so parent activation was skipped.");
+            return;
+        }
+
+        Transform current = child.parent;
+        while (current != null && current != transform)
+        {
+            if (!current.gameObject.activeSelf)
+            {
+                current.gameObject.SetActive(true);
+                LogDebug("Activated orb parent: " + current.name);
+            }
+
+            current = current.parent;
+        }
     }
 
     void SetPanelVisibleInstant(bool visible)
