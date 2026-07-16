@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.Events;
 using UnityEngine.UI;
 #if ENABLE_INPUT_SYSTEM
 using UnityEngine.InputSystem;
@@ -10,6 +11,11 @@ using UnityEngine.InputSystem;
 
 public class FlowerTaskInteractionController : MonoBehaviour
 {
+    [System.Serializable]
+    public class TaskIndexEvent : UnityEvent<int>
+    {
+    }
+
     enum InteractionState
     {
         WaitingForFirstFlowerTouch,
@@ -83,6 +89,14 @@ public class FlowerTaskInteractionController : MonoBehaviour
     public bool LogTouchDebug = true;
     public bool ShowDebugOverlay = true;
 
+    [Header("Guide Events")]
+    public UnityEvent FlowerTouched = new UnityEvent();
+    public TaskIndexEvent OrbSelected = new TaskIndexEvent();
+    public TaskIndexEvent TaskStarted = new TaskIndexEvent();
+    public TaskIndexEvent TaskCompleted = new TaskIndexEvent();
+    public UnityEvent AllTasksCompleted = new UnityEvent();
+    public UnityEvent FlowerPlaced = new UnityEvent();
+
     InteractionState mState = InteractionState.WaitingForFirstFlowerTouch;
     readonly Dictionary<GameObject, bool> mOriginalModelStates = new Dictionary<GameObject, bool>();
     Plane mDragPlane;
@@ -96,6 +110,11 @@ public class FlowerTaskInteractionController : MonoBehaviour
     int TaskCount
     {
         get { return Tasks == null ? 0 : Tasks.Length; }
+    }
+
+    public bool HasRemainingTasks
+    {
+        get { return HasUnfinishedTask(); }
     }
 
     struct PointerInput
@@ -224,6 +243,7 @@ public class FlowerTaskInteractionController : MonoBehaviour
                 LogDebug("Flower touched. Showing available orbs.");
                 ShowAvailableOrbs();
                 mState = HasUnfinishedTask() ? InteractionState.ChoosingOrb : InteractionState.FlowerDraggable;
+                FlowerTouched.Invoke();
             }
 
             return;
@@ -235,6 +255,7 @@ public class FlowerTaskInteractionController : MonoBehaviour
             if (taskIndex >= 0)
             {
                 LogDebug("Orb touched. Starting task index: " + taskIndex);
+                OrbSelected.Invoke(taskIndex);
                 StartCoroutine(StartTaskRoutine(taskIndex));
             }
 
@@ -272,6 +293,7 @@ public class FlowerTaskInteractionController : MonoBehaviour
 
         SetTaskCompleteButtonVisible(true);
         mState = InteractionState.RunningTask;
+        TaskStarted.Invoke(taskIndex);
         mIsBusy = false;
     }
 
@@ -281,6 +303,7 @@ public class FlowerTaskInteractionController : MonoBehaviour
         mState = InteractionState.ShowingPanel;
         SetTaskCompleteButtonVisible(false);
 
+        int completedTaskIndex = mCurrentTaskIndex;
         TaskStep task = mCurrentTaskIndex >= 0 && mCurrentTaskIndex < TaskCount ? Tasks[mCurrentTaskIndex] : null;
 
         if (task != null)
@@ -310,7 +333,8 @@ public class FlowerTaskInteractionController : MonoBehaviour
 
         mCurrentTaskIndex = -1;
 
-        if (HasUnfinishedTask())
+        bool hasUnfinishedTask = HasUnfinishedTask();
+        if (hasUnfinishedTask)
         {
             mState = InteractionState.ChoosingOrb;
         }
@@ -319,6 +343,11 @@ public class FlowerTaskInteractionController : MonoBehaviour
             SetAllOrbsVisible(false);
             mState = InteractionState.FlowerDraggable;
         }
+
+        TaskCompleted.Invoke(completedTaskIndex);
+
+        if (!hasUnfinishedTask)
+            AllTasksCompleted.Invoke();
 
         mIsBusy = false;
     }
@@ -424,6 +453,7 @@ public class FlowerTaskInteractionController : MonoBehaviour
             FlowerObject.transform.position = DropSnapPoint.position;
 
         mState = InteractionState.FlowerPlaced;
+        FlowerPlaced.Invoke();
     }
 
     bool IsFlowerInDropZone()
@@ -786,6 +816,22 @@ public class FlowerTaskInteractionController : MonoBehaviour
             return false;
 
         return child == root || child.IsChildOf(root);
+    }
+
+    public Transform GetFirstAvailableOrbTransform()
+    {
+        for (int i = 0; i < TaskCount; i++)
+        {
+            if (Tasks[i] != null && !Tasks[i].Completed && Tasks[i].OrbObject != null)
+                return Tasks[i].OrbObject.transform;
+        }
+
+        return null;
+    }
+
+    public Transform GetFlowerTransform()
+    {
+        return FlowerObject != null ? FlowerObject.transform : null;
     }
 
     void CacheOriginalModelStates()
