@@ -1,0 +1,51 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5a93583339b534041ada7f113d09bb71, type: 3}
+  m_Name: Page1Dialogue
+  m_EditorClassIdentifier: 
+  introLines:
+  - text: Lumi has passed away, but the love you shared with her still lives in this
+      room.
+    holdAfter: 3
+  - text: Her favourite things still hold small pieces of the memories you made together.
+    holdAfter: 3
+  - text: Begin with Lumi's favourite ball. Tap the object marked by her paw print.
+    holdAfter: 0
+  ballMemoryHint: This was Lumi's favourite ball. She would run in happy circles
+    whenever you played together.
+  bedMemoryHint: This was Lumi's favourite place to rest. Here, she always felt warm
+    and safe.
+  collarMemoryHint: The sound of this collar meant another walk. Lumi would wait
+    excitedly beside the door.
+  foodMemoryHint: Lumi always knew when it was mealtime. Even the little sound of
+    her bowl became part of home.
+  allMemoriesCompletedHint: The memories gently settle back into the room. Then,
+    a soft light begins to glow above Lumi's bed.
+  seedRevealHint: A tiny seed has appeared. Could this be something Lumi left behind?
+    Tap the glowing seed.
+  seedFirstTapHint: The seed feels warm in your hand. A faint flutter can be heard
+    near the window...
+  butterflyLines:
+  - text: That is a Memory Seed.
+    holdAfter: 2.5
+  - text: It was formed from the love and memories Lumi left behind.
+    holdAfter: 2.5
+  - text: To help it bloom, you must carry it to the Memory Garden.
+    holdAfter: 2.5
+  - text: The garden gate is locked, but Lumi's paw prints will guide you to the
+      key.
+    holdAfter: 2.5
+  - text: Keep the seed safe. We will meet again on the next page.
+    holdAfter: 1.5
+  collectSeedHint: Tap the Memory Seed once more to keep it safe.
+  pageCompletedHint: The Memory Seed is safe. Turn to the next page to find the Memory
+    Garden.

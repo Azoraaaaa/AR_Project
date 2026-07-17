@@ -1,110 +1,161 @@
 using System.Collections;
-using TMPro;
 using UnityEngine;
 
 public class Page1MemoryManager : MonoBehaviour
 {
     private const int TotalMemoryCount = 4;
 
+    [Header("Dialogue")]
+    [Tooltip(
+        "Controls the opening narration, memory hints, " +
+        "typewriter effect and dialogue UI."
+    )]
+    [SerializeField]
+    private Page1DialogueController dialogueController;
+
     [Header("Next Story Sequence")]
     [SerializeField]
     private SeedButterflyManager seedButterflyManager;
 
     [Header("Run Memory")]
-    [SerializeField] private GameObject runMemoryRoot;
-    [SerializeField] private Animator runDogAnimator;
+    [SerializeField]
+    private GameObject runMemoryRoot;
+
+    [SerializeField]
+    private Animator runDogAnimator;
 
     [Header("Sleep Memory")]
-    [SerializeField] private GameObject sleepMemoryRoot;
-    [SerializeField] private Animator sleepDogAnimator;
+    [SerializeField]
+    private GameObject sleepMemoryRoot;
+
+    [SerializeField]
+    private Animator sleepDogAnimator;
 
     [Header("Door Memory")]
-    [SerializeField] private GameObject doorMemoryRoot;
-    [SerializeField] private Animator doorDogAnimator;
+    [SerializeField]
+    private GameObject doorMemoryRoot;
+
+    [SerializeField]
+    private Animator doorDogAnimator;
 
     [Header("Food Memory")]
-    [SerializeField] private GameObject foodMemoryRoot;
-    [SerializeField] private Animator foodDogAnimator;
+    [SerializeField]
+    private GameObject foodMemoryRoot;
+
+    [SerializeField]
+    private Animator foodDogAnimator;
 
     [Header("Paw Markers")]
-    [SerializeField] private GameObject ballPawMarker;
-    [SerializeField] private GameObject bedPawMarker;
-    [SerializeField] private GameObject collarPawMarker;
-    [SerializeField] private GameObject foodPawMarker;
+    [SerializeField]
+    private GameObject ballPawMarker;
+
+    [SerializeField]
+    private GameObject bedPawMarker;
+
+    [SerializeField]
+    private GameObject collarPawMarker;
+
+    [SerializeField]
+    private GameObject foodPawMarker;
 
     [Header("Sparkle Effects")]
-    [SerializeField] private GameObject ballSparkleEffect;
-    [SerializeField] private GameObject bedSparkleEffect;
-    [SerializeField] private GameObject collarSparkleEffect;
-    [SerializeField] private GameObject foodSparkleEffect;
+    [SerializeField]
+    private GameObject ballSparkleEffect;
+
+    [SerializeField]
+    private GameObject bedSparkleEffect;
+
+    [SerializeField]
+    private GameObject collarSparkleEffect;
+
+    [SerializeField]
+    private GameObject foodSparkleEffect;
 
     [Header("First Tap Tutorial")]
-    [SerializeField] private GameObject firstTapHandHint;
+    [SerializeField]
+    private GameObject firstTapHandHint;
 
     [Tooltip("Require the player to tap the ball first.")]
-    [SerializeField] private bool requireBallFirst = true;
-
-    [Header("Text")]
-    [SerializeField] private TMP_Text subtitleText;
-    [SerializeField] private TMP_Text instructionText;
+    [SerializeField]
+    private bool requireBallFirst = true;
 
     [Header("Transition Timing")]
-    [SerializeField] private float appearDuration = 0.35f;
-    [SerializeField] private float disappearDuration = 0.2f;
+    [SerializeField]
+    private float appearDuration = 0.35f;
 
-    [Tooltip("The final memory will disappear after this duration.")]
-    [SerializeField] private float finalMemoryDuration = 10f;
+    [SerializeField]
+    private float disappearDuration = 0.2f;
+
+    [Tooltip(
+        "The fourth selected memory remains visible " +
+        "for this duration before disappearing."
+    )]
+    [SerializeField]
+    private float finalMemoryDuration = 10f;
 
     [Header("Run Around Ball")]
-    [Tooltip("72 degrees per second means one complete circle in 5 seconds.")]
-    [SerializeField] private float runRotationSpeed = 72f;
+    [Tooltip(
+        "72 degrees per second means one complete circle " +
+        "in approximately five seconds."
+    )]
+    [SerializeField]
+    private float runRotationSpeed = 72f;
 
     [Header("Memory Audio")]
     [Tooltip(
-        "Used for short sounds such as entering a memory and barking."
+        "Used for short sounds such as entering a memory."
     )]
-    [SerializeField] private AudioSource memoryOneShotSource;
+    [SerializeField]
+    private AudioSource memoryOneShotSource;
 
     [Tooltip(
-        "Used for sounds that continue until another memory is selected."
+        "Used for action sounds that continue until " +
+        "another memory is selected."
     )]
-    [SerializeField] private AudioSource memoryLoopSource;
+    [SerializeField]
+    private AudioSource memoryLoopSource;
 
     [Tooltip(
-        "Played whenever the player enters a memory."
+        "Played once whenever the player enters a memory."
     )]
-    [SerializeField] private AudioClip memoryEnterClip;
+    [SerializeField]
+    private AudioClip memoryEnterClip;
 
     [Tooltip(
-        "Looped while the running memory is active."
+        "Looped while Lumi runs around the ball."
     )]
-    [SerializeField] private AudioClip runLoopClip;
+    [SerializeField]
+    private AudioClip runLoopClip;
 
     [Tooltip(
-        "Looped while the sleeping memory is active."
+        "Looped while Lumi sleeps."
     )]
-    [SerializeField] private AudioClip sleepLoopClip;
+    [SerializeField]
+    private AudioClip sleepLoopClip;
 
     [Tooltip(
-        "Played once when the door memory appears."
+        "Looped while Lumi waits excitedly by the door."
     )]
-    [SerializeField] private AudioClip doorBarkClip;
+    [SerializeField]
+    private AudioClip doorBarkClip;
 
     [Tooltip(
-        "Looped while the eating memory is active."
+        "Looped while Lumi eats."
     )]
-    [SerializeField] private AudioClip foodLoopClip;
+    [SerializeField]
+    private AudioClip foodLoopClip;
 
     private bool ballCompleted;
     private bool bedCompleted;
     private bool collarCompleted;
     private bool foodCompleted;
 
-    private int completedMemoryCount;
-
+    private bool introCompleted;
     private bool isSwitching;
     private bool rotateRunMemory;
     private bool allMemoriesFinished;
+
+    private int completedMemoryCount;
 
     private GameObject currentMemoryRoot;
     private Vector3 currentOriginalScale;
@@ -144,29 +195,110 @@ public class Page1MemoryManager : MonoBehaviour
             out foodOriginalScale
         );
 
-        SetObjectActive(ballPawMarker, true);
-        SetObjectActive(bedPawMarker, true);
-        SetObjectActive(collarPawMarker, true);
-        SetObjectActive(foodPawMarker, true);
+        SetObjectActive(
+            ballPawMarker,
+            true
+        );
 
-        SetObjectActive(ballSparkleEffect, true);
-        SetObjectActive(bedSparkleEffect, true);
-        SetObjectActive(collarSparkleEffect, true);
-        SetObjectActive(foodSparkleEffect, true);
+        SetObjectActive(
+            bedPawMarker,
+            true
+        );
 
-        SetObjectActive(firstTapHandHint, true);
+        SetObjectActive(
+            collarPawMarker,
+            true
+        );
+
+        SetObjectActive(
+            foodPawMarker,
+            true
+        );
+
+        SetObjectActive(
+            ballSparkleEffect,
+            true
+        );
+
+        SetObjectActive(
+            bedSparkleEffect,
+            true
+        );
+
+        SetObjectActive(
+            collarSparkleEffect,
+            true
+        );
+
+        SetObjectActive(
+            foodSparkleEffect,
+            true
+        );
+
+        /*
+         * The hand must not appear before the
+         * introduction tells the player to interact.
+         */
+        SetObjectActive(
+            firstTapHandHint,
+            false
+        );
 
         InitialiseAudioSources();
     }
 
-    private void Start()
+    private IEnumerator Start()
     {
-        SetSubtitle(
-            "Lumi's room is filled with memories."
+        introCompleted = false;
+
+        /*
+         * Keep the hand hidden while the opening
+         * narration is being typed.
+         */
+        SetObjectActive(
+            firstTapHandHint,
+            false
         );
 
-        SetInstruction(
-            "Tap the object shown by the hand."
+        if (dialogueController != null)
+        {
+            /*
+             * Wait until every intro line has finished.
+             *
+             * The final line should tell the player:
+             * "Begin with Lumi's favourite ball.
+             * Tap the object marked by her paw print."
+             */
+            yield return
+                dialogueController
+                    .PlayIntroSequence();
+        }
+        else
+        {
+            Debug.LogWarning(
+                "Page1DialogueController has not been assigned. " +
+                "The opening narration will be skipped."
+            );
+        }
+
+        /*
+         * The final instruction has finished typing.
+         * Memory interaction can now begin.
+         */
+        introCompleted = true;
+
+        /*
+         * Show the hand only after the final intro
+         * instruction has completely appeared.
+         */
+        SetObjectActive(
+            firstTapHandHint,
+            true
+        );
+
+        Debug.Log(
+            "Page 1 opening narration has finished. " +
+            "The ball hand hint is now visible."
         );
     }
 
@@ -201,53 +333,77 @@ public class Page1MemoryManager : MonoBehaviour
     {
         if (memoryOneShotSource != null)
         {
-            memoryOneShotSource.playOnAwake = false;
-            memoryOneShotSource.loop = false;
-            memoryOneShotSource.spatialBlend = 0f;
+            memoryOneShotSource.playOnAwake =
+                false;
+
+            memoryOneShotSource.loop =
+                false;
+
+            memoryOneShotSource.spatialBlend =
+                0f;
         }
 
         if (memoryLoopSource != null)
         {
-            memoryLoopSource.playOnAwake = false;
-            memoryLoopSource.loop = true;
-            memoryLoopSource.spatialBlend = 0f;
+            memoryLoopSource.playOnAwake =
+                false;
+
+            memoryLoopSource.loop =
+                true;
+
+            memoryLoopSource.spatialBlend =
+                0f;
         }
     }
 
     public bool TryPlayMemory(
         MemoryType memoryType)
     {
+        /*
+         * Do not allow the player to click any
+         * memory while the introduction is playing.
+         */
+        if (!introCompleted)
+        {
+            return false;
+        }
+
         if (isSwitching ||
             allMemoriesFinished)
         {
             return false;
         }
 
+        /*
+         * The ball must be selected first.
+         */
         if (completedMemoryCount == 0 &&
             requireBallFirst &&
             memoryType != MemoryType.Ball)
         {
-            SetInstruction(
-                "Tap the ball first to begin."
-            );
-
             return false;
         }
 
-        if (IsMemoryCompleted(memoryType))
+        if (IsMemoryCompleted(
+            memoryType))
         {
             return false;
         }
 
-        if (!HasRequiredReferences(memoryType))
+        if (!HasRequiredReferences(
+            memoryType))
         {
             return false;
         }
 
-        MarkCompleted(memoryType);
+        MarkCompleted(
+            memoryType
+        );
 
         StartCoroutine(
-            SwitchMemory(memoryType)
+            SwitchMemory(
+                memoryType
+            )
         );
 
         return true;
@@ -257,7 +413,8 @@ public class Page1MemoryManager : MonoBehaviour
         GameObject memoryRoot,
         out Vector3 originalScale)
     {
-        originalScale = Vector3.one;
+        originalScale =
+            Vector3.one;
 
         if (memoryRoot == null)
         {
@@ -267,7 +424,9 @@ public class Page1MemoryManager : MonoBehaviour
         originalScale =
             memoryRoot.transform.localScale;
 
-        memoryRoot.SetActive(false);
+        memoryRoot.SetActive(
+            false
+        );
     }
 
     private bool IsMemoryCompleted(
@@ -301,23 +460,39 @@ public class Page1MemoryManager : MonoBehaviour
         switch (memoryType)
         {
             case MemoryType.Ball:
-                memoryRoot = runMemoryRoot;
-                memoryAnimator = runDogAnimator;
+                memoryRoot =
+                    runMemoryRoot;
+
+                memoryAnimator =
+                    runDogAnimator;
+
                 break;
 
             case MemoryType.Bed:
-                memoryRoot = sleepMemoryRoot;
-                memoryAnimator = sleepDogAnimator;
+                memoryRoot =
+                    sleepMemoryRoot;
+
+                memoryAnimator =
+                    sleepDogAnimator;
+
                 break;
 
             case MemoryType.Collar:
-                memoryRoot = doorMemoryRoot;
-                memoryAnimator = doorDogAnimator;
+                memoryRoot =
+                    doorMemoryRoot;
+
+                memoryAnimator =
+                    doorDogAnimator;
+
                 break;
 
             case MemoryType.Food:
-                memoryRoot = foodMemoryRoot;
-                memoryAnimator = foodDogAnimator;
+                memoryRoot =
+                    foodMemoryRoot;
+
+                memoryAnimator =
+                    foodDogAnimator;
+
                 break;
         }
 
@@ -359,29 +534,15 @@ public class Page1MemoryManager : MonoBehaviour
 
         completedMemoryCount++;
 
+        /*
+         * Permanently hide the tutorial hand after
+         * the first successful click on the ball.
+         */
         if (completedMemoryCount == 1)
         {
             SetObjectActive(
                 firstTapHandHint,
                 false
-            );
-
-            SetInstruction(
-                "Tap another object marked with a paw print."
-            );
-        }
-        else if (
-            completedMemoryCount <
-            TotalMemoryCount)
-        {
-            SetInstruction(
-                "Tap another object marked with a paw print."
-            );
-        }
-        else
-        {
-            SetInstruction(
-                "Watch the final memory."
             );
         }
 
@@ -398,28 +559,28 @@ public class Page1MemoryManager : MonoBehaviour
         isSwitching = true;
         rotateRunMemory = false;
 
-        /*
-         * Stop the continuing sound from the
-         * previously active memory.
-         */
         StopMemoryLoop();
 
         /*
-         * Hide the memory that is currently active.
+         * Hide the previously active memory.
          */
         if (currentMemoryRoot != null &&
             currentMemoryRoot.activeSelf)
         {
             yield return ScaleObject(
                 currentMemoryRoot.transform,
-                currentMemoryRoot.transform.localScale,
+                currentMemoryRoot
+                    .transform.localScale,
                 Vector3.zero,
                 disappearDuration
             );
 
-            currentMemoryRoot.SetActive(false);
+            currentMemoryRoot.SetActive(
+                false
+            );
 
-            currentMemoryRoot.transform.localScale =
+            currentMemoryRoot
+                .transform.localScale =
                 currentOriginalScale;
         }
 
@@ -433,18 +594,21 @@ public class Page1MemoryManager : MonoBehaviour
             Vector3.one;
 
         string stateName = "";
-        string subtitle = "";
 
         AudioClip selectedLoopClip = null;
-        AudioClip selectedOneShotClip = null;
 
         switch (memoryType)
         {
             case MemoryType.Ball:
-                selectedRoot = runMemoryRoot;
-                selectedAnimator = runDogAnimator;
+                selectedRoot =
+                    runMemoryRoot;
 
-                selectedPawMarker = ballPawMarker;
+                selectedAnimator =
+                    runDogAnimator;
+
+                selectedPawMarker =
+                    ballPawMarker;
+
                 selectedSparkleEffect =
                     ballSparkleEffect;
 
@@ -454,23 +618,28 @@ public class Page1MemoryManager : MonoBehaviour
                 stateName =
                     "Base Layer.Run";
 
-                subtitle =
-                    "You remember how Lumi chased " +
-                    "the ball around the room.";
-
                 selectedLoopClip =
                     runLoopClip;
 
-                runMemoryRoot.transform.localRotation =
-                    runOriginalRotation;
+                if (runMemoryRoot != null)
+                {
+                    runMemoryRoot
+                        .transform.localRotation =
+                        runOriginalRotation;
+                }
 
                 break;
 
             case MemoryType.Bed:
-                selectedRoot = sleepMemoryRoot;
-                selectedAnimator = sleepDogAnimator;
+                selectedRoot =
+                    sleepMemoryRoot;
 
-                selectedPawMarker = bedPawMarker;
+                selectedAnimator =
+                    sleepDogAnimator;
+
+                selectedPawMarker =
+                    bedPawMarker;
+
                 selectedSparkleEffect =
                     bedSparkleEffect;
 
@@ -480,18 +649,17 @@ public class Page1MemoryManager : MonoBehaviour
                 stateName =
                     "Base Layer.Rest";
 
-                subtitle =
-                    "You remember how Lumi rested " +
-                    "on the soft bed.";
-
                 selectedLoopClip =
                     sleepLoopClip;
 
                 break;
 
             case MemoryType.Collar:
-                selectedRoot = doorMemoryRoot;
-                selectedAnimator = doorDogAnimator;
+                selectedRoot =
+                    doorMemoryRoot;
+
+                selectedAnimator =
+                    doorDogAnimator;
 
                 selectedPawMarker =
                     collarPawMarker;
@@ -505,18 +673,17 @@ public class Page1MemoryManager : MonoBehaviour
                 stateName =
                     "Base Layer.Jump";
 
-                subtitle =
-                    "You remember how Lumi waited " +
-                    "excitedly by the door.";
-
                 selectedLoopClip =
                     doorBarkClip;
 
                 break;
 
             case MemoryType.Food:
-                selectedRoot = foodMemoryRoot;
-                selectedAnimator = foodDogAnimator;
+                selectedRoot =
+                    foodMemoryRoot;
+
+                selectedAnimator =
+                    foodDogAnimator;
 
                 selectedPawMarker =
                     foodPawMarker;
@@ -530,14 +697,21 @@ public class Page1MemoryManager : MonoBehaviour
                 stateName =
                     "Base Layer.Eat";
 
-                subtitle =
-                    "You remember how Lumi happily " +
-                    "ate from the food bowl.";
-
                 selectedLoopClip =
                     foodLoopClip;
 
                 break;
+        }
+
+        if (selectedRoot == null ||
+            selectedAnimator == null)
+        {
+            Debug.LogError(
+                $"{memoryType} memory could not be started."
+            );
+
+            isSwitching = false;
+            yield break;
         }
 
         SetObjectActive(
@@ -553,25 +727,19 @@ public class Page1MemoryManager : MonoBehaviour
         selectedRoot.transform.localScale =
             Vector3.zero;
 
-        selectedRoot.SetActive(true);
+        selectedRoot.SetActive(
+            true
+        );
 
         PrepareAndPlayAnimator(
             selectedAnimator,
             stateName
         );
 
-        /*
-         * Play the same short transition sound
-         * whenever a memory begins.
-         */
         PlayMemoryOneShot(
             memoryEnterClip
         );
 
-        /*
-         * Start the selected continuing action sound.
-         * A null clip means this memory has no loop.
-         */
         StartMemoryLoop(
             selectedLoopClip
         );
@@ -585,8 +753,6 @@ public class Page1MemoryManager : MonoBehaviour
         rotateRunMemory =
             memoryType == MemoryType.Ball;
 
-        SetSubtitle(subtitle);
-
         yield return ScaleObject(
             selectedRoot.transform,
             Vector3.zero,
@@ -598,16 +764,19 @@ public class Page1MemoryManager : MonoBehaviour
             selectedOriginalScale;
 
         /*
-         * Play an optional one-time action sound,
-         * such as Lumi barking beside the door.
+         * Display the editable memory narration
+         * using the GameHint typewriter effect.
          */
-        PlayMemoryOneShot(
-            selectedOneShotClip
-        );
+        if (dialogueController != null)
+        {
+            dialogueController.ShowMemoryHint(
+                memoryType
+            );
+        }
 
         /*
-         * The first three selected memories remain
-         * active until another object is selected.
+         * The first three selected memories stay
+         * visible until the next object is selected.
          */
         if (completedMemoryCount <
             TotalMemoryCount)
@@ -617,8 +786,8 @@ public class Page1MemoryManager : MonoBehaviour
         }
 
         /*
-         * The final selected memory remains active
-         * for the specified duration.
+         * The fourth memory stays visible for the
+         * selected duration before disappearing.
          */
         yield return new WaitForSeconds(
             Mathf.Max(
@@ -633,12 +802,15 @@ public class Page1MemoryManager : MonoBehaviour
 
         yield return ScaleObject(
             selectedRoot.transform,
-            selectedRoot.transform.localScale,
+            selectedRoot
+                .transform.localScale,
             Vector3.zero,
             disappearDuration
         );
 
-        selectedRoot.SetActive(false);
+        selectedRoot.SetActive(
+            false
+        );
 
         selectedRoot.transform.localScale =
             selectedOriginalScale;
@@ -660,15 +832,23 @@ public class Page1MemoryManager : MonoBehaviour
             return;
         }
 
-        animator.enabled = true;
-        animator.speed = 1f;
-        animator.applyRootMotion = false;
+        animator.enabled =
+            true;
+
+        animator.speed =
+            1f;
+
+        animator.applyRootMotion =
+            false;
 
         animator.cullingMode =
             AnimatorCullingMode.AlwaysAnimate;
 
         animator.Rebind();
-        animator.Update(0f);
+
+        animator.Update(
+            0f
+        );
 
         int stateHash =
             Animator.StringToHash(
@@ -694,7 +874,9 @@ public class Page1MemoryManager : MonoBehaviour
             0f
         );
 
-        animator.Update(0f);
+        animator.Update(
+            0f
+        );
 
         Debug.Log(
             $"{animator.gameObject.name} " +
@@ -725,7 +907,8 @@ public class Page1MemoryManager : MonoBehaviour
 
         while (elapsed < duration)
         {
-            elapsed += Time.deltaTime;
+            elapsed +=
+                Time.deltaTime;
 
             float progress =
                 Mathf.Clamp01(
@@ -755,14 +938,18 @@ public class Page1MemoryManager : MonoBehaviour
 
     private void OnAllMemoriesCompleted()
     {
-        SetInstruction("");
-
         StopMemoryLoop();
 
         Debug.Log(
             "All four Lumi memories " +
             "have been completed."
         );
+
+        if (dialogueController != null)
+        {
+            dialogueController
+                .ShowAllMemoriesCompletedHint();
+        }
 
         if (seedButterflyManager != null)
         {
@@ -784,9 +971,12 @@ public class Page1MemoryManager : MonoBehaviour
 
         if (currentMemoryRoot != null)
         {
-            currentMemoryRoot.SetActive(false);
+            currentMemoryRoot.SetActive(
+                false
+            );
 
-            currentMemoryRoot.transform.localScale =
+            currentMemoryRoot
+                .transform.localScale =
                 currentOriginalScale;
         }
 
@@ -852,26 +1042,6 @@ public class Page1MemoryManager : MonoBehaviour
             targetObject.SetActive(
                 isActive
             );
-        }
-    }
-
-    private void SetSubtitle(
-        string message)
-    {
-        if (subtitleText != null)
-        {
-            subtitleText.text =
-                message;
-        }
-    }
-
-    private void SetInstruction(
-        string message)
-    {
-        if (instructionText != null)
-        {
-            instructionText.text =
-                message;
         }
     }
 }
