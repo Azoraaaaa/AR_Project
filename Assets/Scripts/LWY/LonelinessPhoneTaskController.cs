@@ -94,6 +94,7 @@ public class LonelinessPhoneTaskController : MonoBehaviour
     [SerializeField] private Transform receiverObject;
     [SerializeField] private Rigidbody receiverRigidbody;
     [SerializeField] private Transform receiverStartPoint;
+    [SerializeField] private bool useReceiverStartPointOverride;
     [SerializeField] private Transform receiverDropTarget;
     [SerializeField] private float receiverAcceptDistance = 0.05f;
     [SerializeField] private bool snapReceiverToTarget = true;
@@ -103,7 +104,8 @@ public class LonelinessPhoneTaskController : MonoBehaviour
 
     [Header("World Hints")]
     [SerializeField] private GameObject phoneHintImage;
-    [SerializeField] private GameObject receiverHintImage;
+    [SerializeField] private GameObject receiverPickupHintImage;
+    [SerializeField] private GameObject receiverDropHintImage;
 
     [Header("Lonely Orb")]
     [SerializeField] private GameObject lonelyOrbObject;
@@ -152,6 +154,8 @@ public class LonelinessPhoneTaskController : MonoBehaviour
     private Vector3 lonelyOrbOriginalScale = Vector3.one;
     private Vector3 receiverStartPosition;
     private Quaternion receiverStartRotation;
+    private Vector3 receiverStartLocalPosition;
+    private Quaternion receiverStartLocalRotation;
     private Plane receiverDragPlane;
     private Vector3 receiverDragOffset;
 
@@ -273,7 +277,8 @@ public class LonelinessPhoneTaskController : MonoBehaviour
     private void OnPhoneClicked()
     {
         SetObjectActive(phoneHintImage, false);
-        SetObjectActive(receiverHintImage, false);
+        SetObjectActive(receiverPickupHintImage, false);
+        SetObjectActive(receiverDropHintImage, false);
         SetObjectActive(hintPanel, false);
 
         PlayOneShot(phoneClickedClip);
@@ -284,7 +289,8 @@ public class LonelinessPhoneTaskController : MonoBehaviour
                 phoneAnimator.SetBool(phoneIsRingBoolName, true);
         }
 
-        SetObjectActive(receiverHintImage, true);
+        SetObjectActive(receiverPickupHintImage, true);
+        SetObjectActive(receiverDropHintImage, true);
         PlayOneShot(showHintClip);
         state = TaskState.WaitingForReceiverPickup;
     }
@@ -294,7 +300,8 @@ public class LonelinessPhoneTaskController : MonoBehaviour
         if (receiverObject == null)
             return;
 
-        SetObjectActive(receiverHintImage, false);
+        SetObjectActive(receiverPickupHintImage, false);
+        SetObjectActive(receiverDropHintImage, true);
         PlayOneShot(receiverPickupClip);
 
         if (stopRingWhenReceiverPickedUp && phoneAnimator != null && !string.IsNullOrEmpty(phoneIsRingBoolName))
@@ -335,8 +342,13 @@ public class LonelinessPhoneTaskController : MonoBehaviour
         if (IsReceiverInTarget())
         {
             if (snapReceiverToTarget && receiverDropTarget != null && receiverObject != null)
+            {
                 receiverObject.position = receiverDropTarget.position;
+                receiverObject.rotation = receiverDropTarget.rotation;
+            }
 
+            SetObjectActive(receiverPickupHintImage, false);
+            SetObjectActive(receiverDropHintImage, false);
             state = TaskState.PlayingConversation;
             StartCoroutine(ConversationRoutine());
             return;
@@ -346,14 +358,16 @@ public class LonelinessPhoneTaskController : MonoBehaviour
             ReturnReceiverToStart();
 
         PlayOneShot(receiverReturnClip);
-        SetObjectActive(receiverHintImage, true);
+        SetObjectActive(receiverPickupHintImage, true);
+        SetObjectActive(receiverDropHintImage, true);
         PlayOneShot(showHintClip);
         state = TaskState.WaitingForReceiverPickup;
     }
 
     private IEnumerator ConversationRoutine()
     {
-        SetObjectActive(receiverHintImage, false);
+        SetObjectActive(receiverPickupHintImage, false);
+        SetObjectActive(receiverDropHintImage, false);
 
         AvatarOption selectedAvatar = GetSelectedAvatar();
         if (selectedAvatar != null)
@@ -539,7 +553,8 @@ public class LonelinessPhoneTaskController : MonoBehaviour
     {
         SetObjectActive(hintPanel, false);
         SetObjectActive(phoneHintImage, false);
-        SetObjectActive(receiverHintImage, false);
+        SetObjectActive(receiverPickupHintImage, false);
+        SetObjectActive(receiverDropHintImage, false);
         SetObjectActive(conversationTextPanel, false);
         SetDialogueVisible(false);
 
@@ -579,15 +594,15 @@ public class LonelinessPhoneTaskController : MonoBehaviour
         if (receiverObject == null)
             return;
 
-        if (receiverStartPoint != null)
+        if (useReceiverStartPointOverride && receiverStartPoint != null)
         {
             receiverObject.position = receiverStartPoint.position;
             receiverObject.rotation = receiverStartPoint.rotation;
         }
         else
         {
-            receiverObject.position = receiverStartPosition;
-            receiverObject.rotation = receiverStartRotation;
+            receiverObject.localPosition = receiverStartLocalPosition;
+            receiverObject.localRotation = receiverStartLocalRotation;
         }
 
         if (receiverRigidbody != null)
@@ -621,15 +636,26 @@ public class LonelinessPhoneTaskController : MonoBehaviour
         }
 
         Ray ray = arCamera.ScreenPointToRay(screenPosition);
-        if (!Physics.Raycast(ray, out RaycastHit hit, raycastDistance, interactionLayers, QueryTriggerInteraction.Collide))
+        RaycastHit[] hits = Physics.RaycastAll(ray, raycastDistance, interactionLayers, QueryTriggerInteraction.Collide);
+        if (hits.Length == 0)
         {
             LogDebug("Raycast did not hit anything when checking: " + target.name);
             return false;
         }
 
-        bool clickedTarget = hit.transform == target.transform || hit.transform.IsChildOf(target.transform);
-        LogDebug("Raycast hit " + hit.transform.name + ". Expected " + target.name + ". Match: " + clickedTarget);
-        return clickedTarget;
+        System.Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
+
+        for (int i = 0; i < hits.Length; i++)
+        {
+            if (hits[i].transform == target.transform || hits[i].transform.IsChildOf(target.transform))
+            {
+                LogDebug("Raycast included " + target.name + " at hit index " + i + ". First hit was " + hits[0].transform.name + ".");
+                return true;
+            }
+        }
+
+        LogDebug("Raycast first hit " + hits[0].transform.name + ". Expected " + target.name + ". Match: False");
+        return false;
     }
 
     private int GetClickedAvatarIndex(Vector2 screenPosition)
@@ -1048,7 +1074,12 @@ public class LonelinessPhoneTaskController : MonoBehaviour
         {
             receiverStartPosition = receiverObject.position;
             receiverStartRotation = receiverObject.rotation;
+            receiverStartLocalPosition = receiverObject.localPosition;
+            receiverStartLocalRotation = receiverObject.localRotation;
         }
+
+        if (lonelyOrbObject != null)
+            lonelyOrbOriginalScale = lonelyOrbObject.transform.localScale;
     }
 
     private static float Smooth(float t)
