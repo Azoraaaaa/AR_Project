@@ -15944,8 +15944,6 @@ MonoBehaviour:
   gameCanvas: {fileID: 1981048599551386563}
   storyCanvas: {fileID: 2965977712510648662}
   dialogueManager: {fileID: 4114503463916570828}
-  audioSource: {fileID: 3084088605051973219}
-  leafAppearSound: {fileID: 8300000, guid: 6fbd1b7fbb801fd4bbe37bad4ec51419, type: 3}
 --- !u!114 &4114503463916570828
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -15971,6 +15969,7 @@ MonoBehaviour:
   - {fileID: 9029718664698594560}
   audioSource: {fileID: 0}
   dialogueAudios: []
+  leafAppearSound: {fileID: 8300000, guid: 6fbd1b7fbb801fd4bbe37bad4ec51419, type: 3}
   typingSpeed: 0.05
   objectsToHide:
   - {fileID: 7559379695353860049}
