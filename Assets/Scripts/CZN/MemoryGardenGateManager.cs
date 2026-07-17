@@ -34,6 +34,9 @@ public class MemoryGardenGateManager : MonoBehaviour
     [SerializeField] private GameObject keyTapHint;
 
     [Header("Key Reveal")]
+    [Tooltip("How long to wait after the final paw print is selected.")]
+    [SerializeField] private float keyRevealDelay = 3f;
+
     [SerializeField] private float keyRevealDuration = 0.5f;
 
     [Header("Key Floating")]
@@ -66,8 +69,23 @@ public class MemoryGardenGateManager : MonoBehaviour
 
     [Header("Audio")]
     [SerializeField] private AudioSource audioSource;
+
+    [Tooltip("Played whenever the player selects the correct paw print.")]
+    [SerializeField] private AudioClip pawSelectClip;
+
+    [Tooltip("Played when the hidden key appears.")]
+    [SerializeField] private AudioClip keyRevealClip;
+
+    [Tooltip("Played immediately when the player selects the key.")]
+    [SerializeField] private AudioClip keySelectClip;
+
+    [Tooltip("Played when the player taps the locked gate.")]
     [SerializeField] private AudioClip lockedClip;
+
+    [Tooltip("Played when the key reaches the gate lock.")]
     [SerializeField] private AudioClip unlockClip;
+
+    [Tooltip("Played when the gate begins to open.")]
     [SerializeField] private AudioClip gateOpenClip;
 
     [Header("Text")]
@@ -217,8 +235,6 @@ public class MemoryGardenGateManager : MonoBehaviour
             return false;
         }
 
-        // The locked sound and shake can still play
-        // whenever the player taps the locked gate.
         PlayAudio(
             lockedClip
         );
@@ -236,12 +252,8 @@ public class MemoryGardenGateManager : MonoBehaviour
         );
 
         /*
-         * Only the first successful gate check may
-         * activate Paw1.
-         *
-         * After Paw1 has been selected,
-         * currentPawIndex becomes 1, so Paw1
-         * can never be activated again.
+         * Only the first gate check may activate Paw1.
+         * Paw1 will not appear again after it is selected.
          */
         if (!gateChecked)
         {
@@ -259,10 +271,6 @@ public class MemoryGardenGateManager : MonoBehaviour
             }
         }
 
-        /*
-         * Keep the instruction suitable for the
-         * player's current progress.
-         */
         if (keyRevealed)
         {
             SetInstruction(
@@ -333,6 +341,14 @@ public class MemoryGardenGateManager : MonoBehaviour
             return false;
         }
 
+        /*
+         * Play the paw sound only when the player
+         * selects the correct paw print.
+         */
+        PlayAudio(
+            pawSelectClip
+        );
+
         SetObjectActive(
             pawMarkers[pawIndex],
             false
@@ -371,7 +387,17 @@ public class MemoryGardenGateManager : MonoBehaviour
         SetInstruction("");
 
         SetSubtitle(
-            "The last paw print revealed a hidden key."
+            "The paw prints ended beside the flowers."
+        );
+
+        /*
+         * Wait before revealing the key.
+         */
+        yield return new WaitForSeconds(
+            Mathf.Max(
+                0f,
+                keyRevealDelay
+            )
         );
 
         if (keyRoot == null)
@@ -383,6 +409,18 @@ public class MemoryGardenGateManager : MonoBehaviour
             sequenceBusy = false;
             yield break;
         }
+
+        /*
+         * Play the key reveal sound immediately
+         * before the key appears.
+         */
+        PlayAudio(
+            keyRevealClip
+        );
+
+        SetSubtitle(
+            "A hidden key began to shine."
+        );
 
         keyRoot.transform.localPosition =
             keyFloatBaseLocalPosition;
@@ -444,6 +482,13 @@ public class MemoryGardenGateManager : MonoBehaviour
         keySelected = true;
         keyFloating = false;
         sequenceBusy = true;
+
+        /*
+         * Play the key pickup or whoosh sound.
+         */
+        PlayAudio(
+            keySelectClip
+        );
 
         if (keyClickCollider != null)
         {
@@ -533,6 +578,10 @@ public class MemoryGardenGateManager : MonoBehaviour
         keyRoot.transform.position =
             lockPoint.position;
 
+        /*
+         * Play the unlock sound when the key
+         * reaches the lock.
+         */
         PlayAudio(
             unlockClip
         );
@@ -543,6 +592,10 @@ public class MemoryGardenGateManager : MonoBehaviour
 
         keyRoot.SetActive(false);
 
+        /*
+         * Play the gate opening sound before
+         * starting the door movement.
+         */
         PlayAudio(
             gateOpenClip
         );

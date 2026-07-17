@@ -59,6 +59,42 @@ public class Page1MemoryManager : MonoBehaviour
     [Tooltip("72 degrees per second means one complete circle in 5 seconds.")]
     [SerializeField] private float runRotationSpeed = 72f;
 
+    [Header("Memory Audio")]
+    [Tooltip(
+        "Used for short sounds such as entering a memory and barking."
+    )]
+    [SerializeField] private AudioSource memoryOneShotSource;
+
+    [Tooltip(
+        "Used for sounds that continue until another memory is selected."
+    )]
+    [SerializeField] private AudioSource memoryLoopSource;
+
+    [Tooltip(
+        "Played whenever the player enters a memory."
+    )]
+    [SerializeField] private AudioClip memoryEnterClip;
+
+    [Tooltip(
+        "Looped while the running memory is active."
+    )]
+    [SerializeField] private AudioClip runLoopClip;
+
+    [Tooltip(
+        "Looped while the sleeping memory is active."
+    )]
+    [SerializeField] private AudioClip sleepLoopClip;
+
+    [Tooltip(
+        "Played once when the door memory appears."
+    )]
+    [SerializeField] private AudioClip doorBarkClip;
+
+    [Tooltip(
+        "Looped while the eating memory is active."
+    )]
+    [SerializeField] private AudioClip foodLoopClip;
+
     private bool ballCompleted;
     private bool bedCompleted;
     private bool collarCompleted;
@@ -108,20 +144,19 @@ public class Page1MemoryManager : MonoBehaviour
             out foodOriginalScale
         );
 
-        // Show all paw markers when the page starts.
         SetObjectActive(ballPawMarker, true);
         SetObjectActive(bedPawMarker, true);
         SetObjectActive(collarPawMarker, true);
         SetObjectActive(foodPawMarker, true);
 
-        // Show all sparkle effects when the page starts.
         SetObjectActive(ballSparkleEffect, true);
         SetObjectActive(bedSparkleEffect, true);
         SetObjectActive(collarSparkleEffect, true);
         SetObjectActive(foodSparkleEffect, true);
 
-        // Show the tutorial hand at the beginning.
         SetObjectActive(firstTapHandHint, true);
+
+        InitialiseAudioSources();
     }
 
     private void Start()
@@ -147,6 +182,35 @@ public class Page1MemoryManager : MonoBehaviour
                 0f,
                 Space.Self
             );
+        }
+    }
+
+    private void OnDisable()
+    {
+        rotateRunMemory = false;
+
+        StopMemoryLoop();
+
+        if (memoryOneShotSource != null)
+        {
+            memoryOneShotSource.Stop();
+        }
+    }
+
+    private void InitialiseAudioSources()
+    {
+        if (memoryOneShotSource != null)
+        {
+            memoryOneShotSource.playOnAwake = false;
+            memoryOneShotSource.loop = false;
+            memoryOneShotSource.spatialBlend = 0f;
+        }
+
+        if (memoryLoopSource != null)
+        {
+            memoryLoopSource.playOnAwake = false;
+            memoryLoopSource.loop = true;
+            memoryLoopSource.spatialBlend = 0f;
         }
     }
 
@@ -306,7 +370,9 @@ public class Page1MemoryManager : MonoBehaviour
                 "Tap another object marked with a paw print."
             );
         }
-        else if (completedMemoryCount < TotalMemoryCount)
+        else if (
+            completedMemoryCount <
+            TotalMemoryCount)
         {
             SetInstruction(
                 "Tap another object marked with a paw print."
@@ -332,7 +398,15 @@ public class Page1MemoryManager : MonoBehaviour
         isSwitching = true;
         rotateRunMemory = false;
 
-        // Hide the memory that is currently playing.
+        /*
+         * Stop the continuing sound from the
+         * previously active memory.
+         */
+        StopMemoryLoop();
+
+        /*
+         * Hide the memory that is currently active.
+         */
         if (currentMemoryRoot != null &&
             currentMemoryRoot.activeSelf)
         {
@@ -361,6 +435,9 @@ public class Page1MemoryManager : MonoBehaviour
         string stateName = "";
         string subtitle = "";
 
+        AudioClip selectedLoopClip = null;
+        AudioClip selectedOneShotClip = null;
+
         switch (memoryType)
         {
             case MemoryType.Ball:
@@ -368,7 +445,8 @@ public class Page1MemoryManager : MonoBehaviour
                 selectedAnimator = runDogAnimator;
 
                 selectedPawMarker = ballPawMarker;
-                selectedSparkleEffect = ballSparkleEffect;
+                selectedSparkleEffect =
+                    ballSparkleEffect;
 
                 selectedOriginalScale =
                     runOriginalScale;
@@ -380,6 +458,9 @@ public class Page1MemoryManager : MonoBehaviour
                     "You remember how Lumi chased " +
                     "the ball around the room.";
 
+                selectedLoopClip =
+                    runLoopClip;
+
                 runMemoryRoot.transform.localRotation =
                     runOriginalRotation;
 
@@ -390,7 +471,8 @@ public class Page1MemoryManager : MonoBehaviour
                 selectedAnimator = sleepDogAnimator;
 
                 selectedPawMarker = bedPawMarker;
-                selectedSparkleEffect = bedSparkleEffect;
+                selectedSparkleEffect =
+                    bedSparkleEffect;
 
                 selectedOriginalScale =
                     sleepOriginalScale;
@@ -402,14 +484,20 @@ public class Page1MemoryManager : MonoBehaviour
                     "You remember how Lumi rested " +
                     "on the soft bed.";
 
+                selectedLoopClip =
+                    sleepLoopClip;
+
                 break;
 
             case MemoryType.Collar:
                 selectedRoot = doorMemoryRoot;
                 selectedAnimator = doorDogAnimator;
 
-                selectedPawMarker = collarPawMarker;
-                selectedSparkleEffect = collarSparkleEffect;
+                selectedPawMarker =
+                    collarPawMarker;
+
+                selectedSparkleEffect =
+                    collarSparkleEffect;
 
                 selectedOriginalScale =
                     doorOriginalScale;
@@ -421,14 +509,20 @@ public class Page1MemoryManager : MonoBehaviour
                     "You remember how Lumi waited " +
                     "excitedly by the door.";
 
+                selectedLoopClip =
+                    doorBarkClip;
+
                 break;
 
             case MemoryType.Food:
                 selectedRoot = foodMemoryRoot;
                 selectedAnimator = foodDogAnimator;
 
-                selectedPawMarker = foodPawMarker;
-                selectedSparkleEffect = foodSparkleEffect;
+                selectedPawMarker =
+                    foodPawMarker;
+
+                selectedSparkleEffect =
+                    foodSparkleEffect;
 
                 selectedOriginalScale =
                     foodOriginalScale;
@@ -440,16 +534,17 @@ public class Page1MemoryManager : MonoBehaviour
                     "You remember how Lumi happily " +
                     "ate from the food bowl.";
 
+                selectedLoopClip =
+                    foodLoopClip;
+
                 break;
         }
 
-        // Hide the selected object's paw marker.
         SetObjectActive(
             selectedPawMarker,
             false
         );
 
-        // Hide the selected object's sparkle effect.
         SetObjectActive(
             selectedSparkleEffect,
             false
@@ -463,6 +558,22 @@ public class Page1MemoryManager : MonoBehaviour
         PrepareAndPlayAnimator(
             selectedAnimator,
             stateName
+        );
+
+        /*
+         * Play the same short transition sound
+         * whenever a memory begins.
+         */
+        PlayMemoryOneShot(
+            memoryEnterClip
+        );
+
+        /*
+         * Start the selected continuing action sound.
+         * A null clip means this memory has no loop.
+         */
+        StartMemoryLoop(
+            selectedLoopClip
         );
 
         currentMemoryRoot =
@@ -487,18 +598,27 @@ public class Page1MemoryManager : MonoBehaviour
             selectedOriginalScale;
 
         /*
-         * The first three memories stay visible
-         * until the next object is tapped.
+         * Play an optional one-time action sound,
+         * such as Lumi barking beside the door.
          */
-        if (completedMemoryCount < TotalMemoryCount)
+        PlayMemoryOneShot(
+            selectedOneShotClip
+        );
+
+        /*
+         * The first three selected memories remain
+         * active until another object is selected.
+         */
+        if (completedMemoryCount <
+            TotalMemoryCount)
         {
             isSwitching = false;
             yield break;
         }
 
         /*
-         * The fourth memory stays visible for the
-         * selected duration and then disappears.
+         * The final selected memory remains active
+         * for the specified duration.
          */
         yield return new WaitForSeconds(
             Mathf.Max(
@@ -508,6 +628,8 @@ public class Page1MemoryManager : MonoBehaviour
         );
 
         rotateRunMemory = false;
+
+        StopMemoryLoop();
 
         yield return ScaleObject(
             selectedRoot.transform,
@@ -593,7 +715,9 @@ public class Page1MemoryManager : MonoBehaviour
 
         if (duration <= 0f)
         {
-            target.localScale = endScale;
+            target.localScale =
+                endScale;
+
             yield break;
         }
 
@@ -633,6 +757,8 @@ public class Page1MemoryManager : MonoBehaviour
     {
         SetInstruction("");
 
+        StopMemoryLoop();
+
         Debug.Log(
             "All four Lumi memories " +
             "have been completed."
@@ -654,6 +780,8 @@ public class Page1MemoryManager : MonoBehaviour
     {
         rotateRunMemory = false;
 
+        StopMemoryLoop();
+
         if (currentMemoryRoot != null)
         {
             currentMemoryRoot.SetActive(false);
@@ -665,13 +793,65 @@ public class Page1MemoryManager : MonoBehaviour
         currentMemoryRoot = null;
     }
 
+    private void PlayMemoryOneShot(
+        AudioClip clip)
+    {
+        if (memoryOneShotSource == null ||
+            clip == null)
+        {
+            return;
+        }
+
+        memoryOneShotSource.PlayOneShot(
+            clip
+        );
+    }
+
+    private void StartMemoryLoop(
+        AudioClip clip)
+    {
+        StopMemoryLoop();
+
+        if (memoryLoopSource == null ||
+            clip == null)
+        {
+            return;
+        }
+
+        memoryLoopSource.clip =
+            clip;
+
+        memoryLoopSource.loop =
+            true;
+
+        memoryLoopSource.Play();
+    }
+
+    private void StopMemoryLoop()
+    {
+        if (memoryLoopSource == null)
+        {
+            return;
+        }
+
+        if (memoryLoopSource.isPlaying)
+        {
+            memoryLoopSource.Stop();
+        }
+
+        memoryLoopSource.clip =
+            null;
+    }
+
     private void SetObjectActive(
         GameObject targetObject,
         bool isActive)
     {
         if (targetObject != null)
         {
-            targetObject.SetActive(isActive);
+            targetObject.SetActive(
+                isActive
+            );
         }
     }
 
@@ -680,7 +860,8 @@ public class Page1MemoryManager : MonoBehaviour
     {
         if (subtitleText != null)
         {
-            subtitleText.text = message;
+            subtitleText.text =
+                message;
         }
     }
 
@@ -689,7 +870,8 @@ public class Page1MemoryManager : MonoBehaviour
     {
         if (instructionText != null)
         {
-            instructionText.text = message;
+            instructionText.text =
+                message;
         }
     }
 }
