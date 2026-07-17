@@ -33,6 +33,10 @@ public class FlowerTaskInteractionController : MonoBehaviour
         public GameObject OrbObject;
         public GameObject TaskRoot;
 
+        [Header("Orb Dissolve")]
+        public GameObject OrbDissolveEffect;
+        public AudioClip OrbDissolveClip;
+
         [Header("Intro Panel")]
         public Sprite IntroImage;
         [TextArea(2, 5)] public string IntroText;
@@ -72,6 +76,22 @@ public class FlowerTaskInteractionController : MonoBehaviour
     public TaskStep[] Tasks = new TaskStep[0];
     public bool ActivateOrbParentsWhenShown = true;
 
+    [Header("Orb Dissolve Effect")]
+    public GameObject DefaultOrbDissolveEffect;
+    public AudioSource OrbDissolveAudioSource;
+    public AudioClip DefaultOrbDissolveClip;
+    public float OrbDissolveDelaySeconds = 1.2f;
+    public float OrbShrinkSeconds = 0.7f;
+    public float OrbDissolveParticleFadeSeconds = 0.8f;
+    public bool MoveDissolveEffectToOrb = true;
+    public bool DetachDissolveEffectDuringPlay = true;
+
+    [Header("Main Canvas Sidebar")]
+    public GameObject MainCanvasSidebar;
+    public bool AutoFindMainCanvasSidebar = true;
+    public string MainCanvasSidebarName = "Sidebar";
+    public bool HideMainCanvasSidebarDuringTask = true;
+
     [Header("Full Screen Panel")]
     public CanvasGroup FullScreenPanel;
     public Image PanelImage;
@@ -101,14 +121,18 @@ public class FlowerTaskInteractionController : MonoBehaviour
 
     InteractionState mState = InteractionState.WaitingForFirstFlowerTouch;
     readonly Dictionary<GameObject, bool> mOriginalModelStates = new Dictionary<GameObject, bool>();
+    readonly Dictionary<GameObject, Vector3> mOriginalOrbScales = new Dictionary<GameObject, Vector3>();
     Plane mDragPlane;
     Vector3 mDragOffset;
     Vector3 mFlowerStartLocalPosition;
     Quaternion mFlowerStartLocalRotation;
     int mCurrentTaskIndex = -1;
+    int mPendingOrbDissolveIndex = -1;
     bool mIsBusy;
     bool mIsDraggingFlower;
     bool mHasFlowerStartPose;
+    bool mHasMainCanvasSidebarInitialState;
+    bool mMainCanvasSidebarInitialState;
     string mLastDebugMessage = "";
     Button mRegisteredTaskCompleteButton;
 
@@ -135,10 +159,14 @@ public class FlowerTaskInteractionController : MonoBehaviour
     {
         ResolveInteractionCamera();
         ResolveTaskCompleteButton();
+        ResolveMainCanvasSidebar();
         ConfigureUiCanvases();
 
         CacheOriginalModelStates();
+        CacheOriginalOrbScales();
         CacheFlowerStartPose();
+        CacheMainCanvasSidebarState();
+        SetOrbDissolveEffectsVisible(false);
 
         RegisterTaskCompleteButtonListener();
     }
@@ -147,7 +175,9 @@ public class FlowerTaskInteractionController : MonoBehaviour
     {
         ResolveInteractionCamera();
         ResolveTaskCompleteButton();
+        ResolveMainCanvasSidebar();
         ConfigureUiCanvases();
+        CacheMainCanvasSidebarState();
         RegisterTaskCompleteButtonListener();
     }
 
@@ -155,6 +185,7 @@ public class FlowerTaskInteractionController : MonoBehaviour
     {
         PrepareClickableObjects();
         ValidateSetup();
+        CacheOriginalOrbScales();
         CacheFlowerStartPose();
         ResetInteraction();
     }
@@ -213,6 +244,7 @@ public class FlowerTaskInteractionController : MonoBehaviour
         mIsBusy = false;
         mIsDraggingFlower = false;
         mCurrentTaskIndex = -1;
+        mPendingOrbDissolveIndex = -1;
         mState = InteractionState.WaitingForFirstFlowerTouch;
 
         for (int i = 0; i < TaskCount; i++)
@@ -224,8 +256,11 @@ public class FlowerTaskInteractionController : MonoBehaviour
         }
 
         SetMainModelsVisible(true);
+        SetMainCanvasSidebarVisible(true);
         SetAllTaskRootsVisible(false);
         SetAllOrbsVisible(false);
+        RestoreOriginalOrbScales();
+        SetOrbDissolveEffectsVisible(false);
         SetTaskCompleteButtonVisible(false);
         SetPanelVisibleInstant(false);
         ReturnFlowerToStart();
@@ -288,6 +323,7 @@ public class FlowerTaskInteractionController : MonoBehaviour
         mIsBusy = true;
         mState = InteractionState.ShowingPanel;
         mCurrentTaskIndex = taskIndex;
+        SetMainCanvasSidebarVisible(false);
 
         yield return ShowTimedPanel(task.IntroImage, task.IntroText, task.IntroPanelSeconds, () =>
         {
@@ -316,6 +352,8 @@ public class FlowerTaskInteractionController : MonoBehaviour
 
         if (task != null)
         {
+            mPendingOrbDissolveIndex = completedTaskIndex;
+
             yield return ShowTimedPanel(task.CompletionImage, task.CompletionText, task.CompletionPanelSeconds, () =>
             {
                 if (task.TaskRoot != null)
@@ -323,20 +361,25 @@ public class FlowerTaskInteractionController : MonoBehaviour
 
                 task.Completed = true;
 
-                if (task.OrbObject != null)
-                    task.OrbObject.SetActive(false);
-
                 SetMainModelsVisible(true);
 
-                if (HasUnfinishedTask())
-                    ShowAvailableOrbs();
-                else
-                    SetAllOrbsVisible(false);
+                ShowAvailableOrbs();
             });
+
+            SetMainCanvasSidebarVisible(true);
+
+            yield return PlayCompletedOrbDissolveRoutine(task);
+            mPendingOrbDissolveIndex = -1;
+
+            if (HasUnfinishedTask())
+                ShowAvailableOrbs();
+            else
+                SetAllOrbsVisible(false);
         }
         else
         {
             SetMainModelsVisible(true);
+            SetMainCanvasSidebarVisible(true);
         }
 
         mCurrentTaskIndex = -1;
@@ -480,6 +523,144 @@ public class FlowerTaskInteractionController : MonoBehaviour
 
         Vector3 closestPoint = DropZoneCollider.ClosestPoint(flowerPosition);
         return Vector3.Distance(flowerPosition, closestPoint) <= DropAcceptDistance;
+    }
+
+    IEnumerator PlayCompletedOrbDissolveRoutine(TaskStep task)
+    {
+        if (task == null || task.OrbObject == null)
+            yield break;
+
+        if (OrbDissolveDelaySeconds > 0f)
+            yield return new WaitForSeconds(OrbDissolveDelaySeconds);
+
+        GameObject orbObject = task.OrbObject;
+        Transform orbTransform = orbObject.transform;
+        Vector3 startScale = orbTransform.localScale;
+        GameObject effect = GetOrbDissolveEffect(task);
+        Transform originalEffectParent = null;
+        bool detachedEffect = false;
+
+        SetOrbVisible(orbObject, true);
+
+        if (effect != null)
+        {
+            if (DetachDissolveEffectDuringPlay && effect != orbObject && effect.transform.IsChildOf(orbTransform))
+            {
+                originalEffectParent = effect.transform.parent;
+                effect.transform.SetParent(orbTransform.parent, true);
+                detachedEffect = true;
+            }
+
+            if (MoveDissolveEffectToOrb)
+            {
+                effect.transform.position = orbTransform.position;
+                effect.transform.rotation = orbTransform.rotation;
+            }
+
+            effect.SetActive(true);
+            PlayDissolveParticles(effect);
+        }
+
+        PlayOrbDissolveAudio(task);
+
+        float elapsed = 0f;
+        while (elapsed < OrbShrinkSeconds)
+        {
+            elapsed += Time.deltaTime;
+            float t = OrbShrinkSeconds <= 0f ? 1f : Mathf.Clamp01(elapsed / OrbShrinkSeconds);
+            float smoothT = t * t * (3f - 2f * t);
+            orbTransform.localScale = Vector3.Lerp(startScale, Vector3.zero, smoothT);
+            yield return null;
+        }
+
+        orbTransform.localScale = Vector3.zero;
+        SetOrbVisible(orbObject, false);
+
+        if (effect != null)
+        {
+            StopDissolveParticles(effect);
+
+            if (OrbDissolveParticleFadeSeconds > 0f)
+                yield return new WaitForSeconds(OrbDissolveParticleFadeSeconds);
+
+            effect.SetActive(false);
+
+            if (detachedEffect)
+                effect.transform.SetParent(originalEffectParent, true);
+        }
+    }
+
+    GameObject GetOrbDissolveEffect(TaskStep task)
+    {
+        if (task != null && task.OrbDissolveEffect != null)
+            return task.OrbDissolveEffect;
+
+        return DefaultOrbDissolveEffect;
+    }
+
+    AudioClip GetOrbDissolveClip(TaskStep task)
+    {
+        if (task != null && task.OrbDissolveClip != null)
+            return task.OrbDissolveClip;
+
+        return DefaultOrbDissolveClip;
+    }
+
+    void PlayOrbDissolveAudio(TaskStep task)
+    {
+        AudioClip clip = GetOrbDissolveClip(task);
+        if (clip == null)
+            return;
+
+        if (OrbDissolveAudioSource != null)
+        {
+            OrbDissolveAudioSource.PlayOneShot(clip);
+            return;
+        }
+
+        Vector3 position = task != null && task.OrbObject != null ? task.OrbObject.transform.position : transform.position;
+        AudioSource.PlayClipAtPoint(clip, position);
+    }
+
+    void PlayDissolveParticles(GameObject effect)
+    {
+        if (effect == null)
+            return;
+
+        ParticleSystem[] particles = effect.GetComponentsInChildren<ParticleSystem>(true);
+        for (int i = 0; i < particles.Length; i++)
+        {
+            if (particles[i] == null)
+                continue;
+
+            particles[i].Clear(true);
+            particles[i].Play(true);
+        }
+    }
+
+    void StopDissolveParticles(GameObject effect)
+    {
+        if (effect == null)
+            return;
+
+        ParticleSystem[] particles = effect.GetComponentsInChildren<ParticleSystem>(true);
+        for (int i = 0; i < particles.Length; i++)
+        {
+            if (particles[i] != null)
+                particles[i].Stop(true, ParticleSystemStopBehavior.StopEmitting);
+        }
+    }
+
+    void SetOrbDissolveEffectsVisible(bool visible)
+    {
+        if (DefaultOrbDissolveEffect != null)
+            DefaultOrbDissolveEffect.SetActive(visible);
+
+        for (int i = 0; i < TaskCount; i++)
+        {
+            if (Tasks[i] != null && Tasks[i].OrbDissolveEffect != null)
+                Tasks[i].OrbDissolveEffect.SetActive(visible);
+        }
     }
 
     void CacheFlowerStartPose()
@@ -661,6 +842,42 @@ public class FlowerTaskInteractionController : MonoBehaviour
 
         if (TaskCompleteButton != null)
             LogDebug("Found task complete button by name: " + TaskCompleteButtonName);
+    }
+
+    void ResolveMainCanvasSidebar()
+    {
+        if (!AutoFindMainCanvasSidebar || MainCanvasSidebar != null || string.IsNullOrEmpty(MainCanvasSidebarName))
+            return;
+
+        MainCanvasSidebar = FindSceneGameObjectByName(MainCanvasSidebarName);
+
+        if (MainCanvasSidebar != null)
+            LogDebug("Found main canvas sidebar by name: " + MainCanvasSidebarName);
+    }
+
+    GameObject FindSceneGameObjectByName(string objectName)
+    {
+        if (string.IsNullOrEmpty(objectName))
+            return null;
+
+        GameObject activeObject = GameObject.Find(objectName);
+        if (activeObject != null)
+            return activeObject;
+
+        Transform[] transforms = Resources.FindObjectsOfTypeAll<Transform>();
+        for (int i = 0; i < transforms.Length; i++)
+        {
+            Transform target = transforms[i];
+            if (target == null || target.name != objectName)
+                continue;
+
+            if (!target.gameObject.scene.IsValid())
+                continue;
+
+            return target.gameObject;
+        }
+
+        return null;
     }
 
     void RegisterTaskCompleteButtonListener()
@@ -866,6 +1083,28 @@ public class FlowerTaskInteractionController : MonoBehaviour
         return FlowerObject != null ? FlowerObject.transform : null;
     }
 
+    void CacheOriginalOrbScales()
+    {
+        mOriginalOrbScales.Clear();
+
+        for (int i = 0; i < TaskCount; i++)
+        {
+            if (Tasks[i] == null || Tasks[i].OrbObject == null)
+                continue;
+
+            mOriginalOrbScales[Tasks[i].OrbObject] = Tasks[i].OrbObject.transform.localScale;
+        }
+    }
+
+    void RestoreOriginalOrbScales()
+    {
+        foreach (KeyValuePair<GameObject, Vector3> pair in mOriginalOrbScales)
+        {
+            if (pair.Key != null)
+                pair.Key.transform.localScale = pair.Value;
+        }
+    }
+
     void CacheOriginalModelStates()
     {
         mOriginalModelStates.Clear();
@@ -895,6 +1134,24 @@ public class FlowerTaskInteractionController : MonoBehaviour
 
             pair.Key.SetActive(visible ? pair.Value : false);
         }
+    }
+
+    void CacheMainCanvasSidebarState()
+    {
+        if (mHasMainCanvasSidebarInitialState || MainCanvasSidebar == null)
+            return;
+
+        mMainCanvasSidebarInitialState = MainCanvasSidebar.activeSelf;
+        mHasMainCanvasSidebarInitialState = true;
+    }
+
+    void SetMainCanvasSidebarVisible(bool visible)
+    {
+        if (!HideMainCanvasSidebarDuringTask || MainCanvasSidebar == null)
+            return;
+
+        CacheMainCanvasSidebarState();
+        MainCanvasSidebar.SetActive(visible ? mMainCanvasSidebarInitialState : false);
     }
 
     void SetAllTaskRootsVisible(bool visible)
@@ -940,7 +1197,7 @@ public class FlowerTaskInteractionController : MonoBehaviour
                 continue;
             }
 
-            bool shouldShow = !task.Completed;
+            bool shouldShow = !task.Completed || i == mPendingOrbDissolveIndex;
             SetOrbVisible(task.OrbObject, shouldShow);
 
             if (shouldShow)

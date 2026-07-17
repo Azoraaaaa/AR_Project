@@ -1,106 +1,199 @@
 using System.Collections;
-using TMPro;
 using UnityEngine;
 
 public class MemoryGardenGateManager : MonoBehaviour
 {
+    [Header("Dialogue")]
+    [Tooltip(
+        "Controls the Page 2 GameHint, StoryBG, " +
+        "typewriter effect and dialogue."
+    )]
+    [SerializeField]
+    private Page2DialogueController dialogueController;
+
     [Header("Gate Interaction")]
-    [SerializeField] private Transform gateShakeRoot;
-    [SerializeField] private Collider gateClickCollider;
+    [Tooltip(
+        "The root object that shakes when the locked gate is tapped."
+    )]
+    [SerializeField]
+    private Transform gateShakeRoot;
 
-    [Tooltip("The paw trail cannot be used until the gate has been checked.")]
-    [SerializeField] private bool requireGateCheckBeforePaws = true;
-
-    [Tooltip("Show the first paw print as soon as the scene begins.")]
-    [SerializeField] private bool showFirstPawAtStart = true;
+    [Tooltip(
+        "The collider used to click the garden gate."
+    )]
+    [SerializeField]
+    private Collider gateClickCollider;
 
     [Header("Locked Gate Shake")]
-    [SerializeField] private float lockedShakeDuration = 0.4f;
-    [SerializeField] private float lockedShakeAngle = 3f;
-    [SerializeField] private int lockedShakeCycles = 3;
+    [SerializeField]
+    private float lockedShakeDuration = 0.4f;
 
-    [Tooltip("Use (0, 1, 0) for a small Y-axis shake.")]
+    [SerializeField]
+    private float lockedShakeAngle = 3f;
+
+    [SerializeField]
+    private int lockedShakeCycles = 3;
+
+    [Tooltip(
+        "Usually use (0, 1, 0) to shake around the Y axis."
+    )]
     [SerializeField]
     private Vector3 lockedShakeAxis =
         new Vector3(0f, 1f, 0f);
 
     [Header("Paw Trail")]
-    [SerializeField] private GameObject[] pawMarkers;
+    [Tooltip(
+        "Assign Paw1 to Paw6 in the correct order."
+    )]
+    [SerializeField]
+    private GameObject[] pawMarkers;
 
     [Header("Key")]
-    [SerializeField] private GameObject keyRoot;
-    [SerializeField] private Collider keyClickCollider;
-    [SerializeField] private GameObject keySparkleEffect;
-    [SerializeField] private GameObject keyTapHint;
+    [Tooltip(
+        "The parent object containing the key model " +
+        "and its click area."
+    )]
+    [SerializeField]
+    private GameObject keyRoot;
+
+    [Tooltip(
+        "The collider used to click the key."
+    )]
+    [SerializeField]
+    private Collider keyClickCollider;
+
+    [SerializeField]
+    private GameObject keySparkleEffect;
+
+    [SerializeField]
+    private GameObject keyTapHint;
 
     [Header("Key Reveal")]
-    [Tooltip("How long to wait after the final paw print is selected.")]
-    [SerializeField] private float keyRevealDelay = 3f;
+    [Tooltip(
+        "How long to wait after the final paw print " +
+        "before the key appears."
+    )]
+    [SerializeField]
+    private float keyRevealDelay = 3f;
 
-    [SerializeField] private float keyRevealDuration = 0.5f;
+    [Tooltip(
+        "How long the key takes to grow from zero scale."
+    )]
+    [SerializeField]
+    private float keyRevealDuration = 0.5f;
 
     [Header("Key Floating")]
-    [SerializeField] private float keyFloatHeight = 0.06f;
-    [SerializeField] private float keyFloatSpeed = 2.5f;
+    [Tooltip(
+        "How far the key moves up and down."
+    )]
+    [SerializeField]
+    private float keyFloatHeight = 0.06f;
+
+    [Tooltip(
+        "How quickly the key moves up and down."
+    )]
+    [SerializeField]
+    private float keyFloatSpeed = 2.5f;
 
     [Header("Key Flight")]
-    [SerializeField] private Transform keyControlPoint;
-    [SerializeField] private Transform lockPoint;
-    [SerializeField] private float keyFlightDuration = 1.2f;
+    [Tooltip(
+        "The middle control point used to create " +
+        "the curved key flight path."
+    )]
+    [SerializeField]
+    private Transform keyControlPoint;
+
+    [Tooltip(
+        "The final point at the centre of the gate lock."
+    )]
+    [SerializeField]
+    private Transform lockPoint;
+
+    [SerializeField]
+    private float keyFlightDuration = 1.2f;
 
     [Header("Door Opening")]
-    [Tooltip("Assign the left door hinge pivot.")]
-    [SerializeField] private Transform leftDoorPivot;
+    [Tooltip(
+        "The pivot placed at the left door hinge."
+    )]
+    [SerializeField]
+    private Transform leftDoorPivot;
 
-    [Tooltip("Optional. Leave empty when only opening one door.")]
-    [SerializeField] private Transform rightDoorPivot;
+    [Tooltip(
+        "Optional. Leave empty if only one door should open."
+    )]
+    [SerializeField]
+    private Transform rightDoorPivot;
 
-    [Tooltip("Adjust this after testing the left door pivot.")]
+    [Tooltip(
+        "Rotation added to the left door's closed rotation."
+    )]
     [SerializeField]
     private Vector3 leftDoorOpenEuler =
         new Vector3(0f, -85f, 0f);
 
-    [Tooltip("Adjust this after testing the right door pivot.")]
+    [Tooltip(
+        "Rotation added to the right door's closed rotation."
+    )]
     [SerializeField]
     private Vector3 rightDoorOpenEuler =
         new Vector3(0f, 85f, 0f);
 
-    [SerializeField] private float doorOpenDuration = 1.4f;
+    [SerializeField]
+    private float doorOpenDuration = 1.4f;
 
     [Header("Audio")]
-    [SerializeField] private AudioSource audioSource;
+    [SerializeField]
+    private AudioSource audioSource;
 
-    [Tooltip("Played whenever the player selects the correct paw print.")]
-    [SerializeField] private AudioClip pawSelectClip;
+    [Tooltip(
+        "Played whenever the correct paw print is tapped."
+    )]
+    [SerializeField]
+    private AudioClip pawSelectClip;
 
-    [Tooltip("Played when the hidden key appears.")]
-    [SerializeField] private AudioClip keyRevealClip;
+    [Tooltip(
+        "Played when the hidden key appears."
+    )]
+    [SerializeField]
+    private AudioClip keyRevealClip;
 
-    [Tooltip("Played immediately when the player selects the key.")]
-    [SerializeField] private AudioClip keySelectClip;
+    [Tooltip(
+        "Played when the player taps the key."
+    )]
+    [SerializeField]
+    private AudioClip keySelectClip;
 
-    [Tooltip("Played when the player taps the locked gate.")]
-    [SerializeField] private AudioClip lockedClip;
+    [Tooltip(
+        "Played whenever the player taps the locked gate."
+    )]
+    [SerializeField]
+    private AudioClip lockedClip;
 
-    [Tooltip("Played when the key reaches the gate lock.")]
-    [SerializeField] private AudioClip unlockClip;
+    [Tooltip(
+        "Played when the key reaches the gate lock."
+    )]
+    [SerializeField]
+    private AudioClip unlockClip;
 
-    [Tooltip("Played when the gate begins to open.")]
-    [SerializeField] private AudioClip gateOpenClip;
-
-    [Header("Text")]
-    [SerializeField] private TMP_Text subtitleText;
-    [SerializeField] private TMP_Text instructionText;
+    [Tooltip(
+        "Played when the gate starts opening."
+    )]
+    [SerializeField]
+    private AudioClip gateOpenClip;
 
     private int currentPawIndex;
 
+    private bool introCompleted;
     private bool gateChecked;
     private bool gateOpened;
+    private bool pawTrailReady;
+
     private bool keyRevealed;
     private bool keySelected;
+    private bool keyFloating;
 
     private bool sequenceBusy;
-    private bool keyFloating;
     private bool gateShaking;
 
     private Vector3 keyOriginalScale;
@@ -115,22 +208,51 @@ public class MemoryGardenGateManager : MonoBehaviour
         InitialisePawTrail();
         InitialiseKey();
         InitialiseGate();
-
-        if (audioSource != null)
-        {
-            audioSource.playOnAwake = false;
-            audioSource.loop = false;
-        }
+        InitialiseAudio();
     }
 
-    private void Start()
+    private IEnumerator Start()
     {
-        SetSubtitle(
-            "The entrance to the Memory Garden stood before you."
-        );
+        introCompleted = false;
+        pawTrailReady = false;
 
-        SetInstruction(
-            "Tap the garden gate."
+        /*
+         * Do not allow the player to click the gate
+         * while the opening butterfly dialogue is playing.
+         */
+        if (gateClickCollider != null)
+        {
+            gateClickCollider.enabled = false;
+        }
+
+        if (dialogueController != null)
+        {
+            yield return
+                dialogueController
+                    .PlayIntroButterflySequence();
+        }
+        else
+        {
+            Debug.LogWarning(
+                "Page2DialogueController has not been assigned. " +
+                "The Page 2 opening dialogue will be skipped."
+            );
+        }
+
+        /*
+         * The final opening line has now finished:
+         * "First, we must get inside. Try opening the gate."
+         */
+        introCompleted = true;
+
+        if (gateClickCollider != null)
+        {
+            gateClickCollider.enabled = true;
+        }
+
+        Debug.Log(
+            "Page 2 opening dialogue has finished. " +
+            "The garden gate can now be selected."
         );
     }
 
@@ -141,38 +263,49 @@ public class MemoryGardenGateManager : MonoBehaviour
             keyRoot.activeSelf)
         {
             float verticalOffset =
-                Mathf.Sin(Time.time * keyFloatSpeed) *
+                Mathf.Sin(
+                    Time.time *
+                    keyFloatSpeed
+                ) *
                 keyFloatHeight;
 
             keyRoot.transform.localPosition =
                 keyFloatBaseLocalPosition +
-                Vector3.up * verticalOffset;
+                Vector3.up *
+                verticalOffset;
+        }
+    }
+
+    private void OnDisable()
+    {
+        if (audioSource != null)
+        {
+            audioSource.Stop();
         }
     }
 
     private void InitialisePawTrail()
     {
         currentPawIndex = 0;
+        pawTrailReady = false;
 
         if (pawMarkers == null)
         {
             return;
         }
 
-        for (int i = 0; i < pawMarkers.Length; i++)
+        /*
+         * All paw prints start hidden.
+         * Paw1 only appears after the player checks
+         * the gate and finishes reading the hint.
+         */
+        for (int i = 0;
+             i < pawMarkers.Length;
+             i++)
         {
             SetObjectActive(
                 pawMarkers[i],
                 false
-            );
-        }
-
-        if (showFirstPawAtStart &&
-            pawMarkers.Length > 0)
-        {
-            SetObjectActive(
-                pawMarkers[0],
-                true
             );
         }
     }
@@ -227,14 +360,31 @@ public class MemoryGardenGateManager : MonoBehaviour
         }
     }
 
+    private void InitialiseAudio()
+    {
+        if (audioSource == null)
+        {
+            return;
+        }
+
+        audioSource.playOnAwake = false;
+        audioSource.loop = false;
+        audioSource.spatialBlend = 0f;
+    }
+
     public bool TryCheckGate()
     {
-        if (gateOpened ||
+        if (!introCompleted ||
+            gateOpened ||
             sequenceBusy)
         {
             return false;
         }
 
+        /*
+         * The locked sound and shake can still happen
+         * if the player taps the locked gate again.
+         */
         PlayAudio(
             lockedClip
         );
@@ -247,76 +397,86 @@ public class MemoryGardenGateManager : MonoBehaviour
             );
         }
 
-        SetSubtitle(
-            "The gate was locked."
+        /*
+         * The locked-gate dialogue and Paw1 reveal
+         * only happen on the first successful gate tap.
+         */
+        if (gateChecked)
+        {
+            return true;
+        }
+
+        gateChecked = true;
+
+        StartCoroutine(
+            LockedGateDialogueRoutine()
         );
 
+        return true;
+    }
+
+    private IEnumerator LockedGateDialogueRoutine()
+    {
+        sequenceBusy = true;
+
         /*
-         * Only the first gate check may activate Paw1.
-         * Paw1 will not appear again after it is selected.
+         * Page2DialogueController automatically hides
+         * StoryBG and displays GameHint.
          */
-        if (!gateChecked)
+        if (dialogueController != null)
         {
-            gateChecked = true;
-
-            if (currentPawIndex == 0 &&
-                pawMarkers != null &&
-                pawMarkers.Length > 0 &&
-                pawMarkers[0] != null)
-            {
-                SetObjectActive(
-                    pawMarkers[0],
-                    true
-                );
-            }
-        }
-
-        if (keyRevealed)
-        {
-            SetInstruction(
-                "Tap the glowing key."
-            );
-        }
-        else if (pawMarkers != null &&
-                 currentPawIndex < pawMarkers.Length)
-        {
-            if (currentPawIndex == 0)
-            {
-                SetInstruction(
-                    "Follow Lumi's paw prints."
-                );
-            }
-            else
-            {
-                SetInstruction(
-                    "Follow the next paw print."
-                );
-            }
+            yield return
+                dialogueController
+                    .PlayLockedGateHintSequence();
         }
         else
         {
-            SetInstruction("");
+            yield return new WaitForSeconds(
+                1f
+            );
         }
 
-        return true;
+        /*
+         * Paw1 appears only after the locked-gate
+         * explanation has completely finished.
+         */
+        if (pawMarkers != null &&
+            pawMarkers.Length > 0 &&
+            pawMarkers[0] != null &&
+            currentPawIndex == 0)
+        {
+            SetObjectActive(
+                pawMarkers[0],
+                true
+            );
+        }
+
+        pawTrailReady = true;
+
+        /*
+         * Show the final interaction instruction.
+         * Paw1 is already visible at this point.
+         */
+        if (dialogueController != null)
+        {
+            dialogueController
+                .ShowPawTrailHint();
+        }
+
+        sequenceBusy = false;
+
+        Debug.Log(
+            "The paw trail is ready. Paw1 is now visible."
+        );
     }
 
     public bool TrySelectPaw(
         int pawIndex)
     {
         if (gateOpened ||
-            sequenceBusy)
+            sequenceBusy ||
+            !pawTrailReady)
         {
-            return false;
-        }
-
-        if (requireGateCheckBeforePaws &&
-            !gateChecked)
-        {
-            SetInstruction(
-                "Check the garden gate first."
-            );
-
             return false;
         }
 
@@ -330,11 +490,6 @@ public class MemoryGardenGateManager : MonoBehaviour
             return false;
         }
 
-        if (pawIndex != currentPawIndex)
-        {
-            return false;
-        }
-
         if (pawIndex < 0 ||
             pawIndex >= pawMarkers.Length)
         {
@@ -342,9 +497,20 @@ public class MemoryGardenGateManager : MonoBehaviour
         }
 
         /*
-         * Play the paw sound only when the player
-         * selects the correct paw print.
+         * Only the currently visible paw print
+         * can be accepted.
          */
+        if (pawIndex != currentPawIndex)
+        {
+            return false;
+        }
+
+        if (pawMarkers[pawIndex] == null ||
+            !pawMarkers[pawIndex].activeSelf)
+        {
+            return false;
+        }
+
         PlayAudio(
             pawSelectClip
         );
@@ -354,6 +520,9 @@ public class MemoryGardenGateManager : MonoBehaviour
             false
         );
 
+        /*
+         * Show the next paw print.
+         */
         if (currentPawIndex <
             pawMarkers.Length - 1)
         {
@@ -363,14 +532,16 @@ public class MemoryGardenGateManager : MonoBehaviour
                 pawMarkers[currentPawIndex],
                 true
             );
-
-            SetInstruction(
-                "Follow the next paw print."
-            );
         }
         else
         {
+            /*
+             * The final paw was selected.
+             * Stop paw interaction and begin
+             * the key reveal sequence.
+             */
             currentPawIndex++;
+            pawTrailReady = false;
 
             StartCoroutine(
                 RevealKeyRoutine()
@@ -384,14 +555,9 @@ public class MemoryGardenGateManager : MonoBehaviour
     {
         sequenceBusy = true;
 
-        SetInstruction("");
-
-        SetSubtitle(
-            "The paw prints ended beside the flowers."
-        );
-
         /*
-         * Wait before revealing the key.
+         * Create a short pause after the final
+         * paw print disappears.
          */
         yield return new WaitForSeconds(
             Mathf.Max(
@@ -410,16 +576,8 @@ public class MemoryGardenGateManager : MonoBehaviour
             yield break;
         }
 
-        /*
-         * Play the key reveal sound immediately
-         * before the key appears.
-         */
         PlayAudio(
             keyRevealClip
-        );
-
-        SetSubtitle(
-            "A hidden key began to shine."
         );
 
         keyRoot.transform.localPosition =
@@ -435,6 +593,19 @@ public class MemoryGardenGateManager : MonoBehaviour
             true
         );
 
+        /*
+         * The key is not clickable while appearing.
+         */
+        if (keyClickCollider != null)
+        {
+            keyClickCollider.enabled = false;
+        }
+
+        SetObjectActive(
+            keyTapHint,
+            false
+        );
+
         yield return ScaleObject(
             keyRoot.transform,
             Vector3.zero,
@@ -448,8 +619,20 @@ public class MemoryGardenGateManager : MonoBehaviour
         keyFloatBaseLocalPosition =
             keyRoot.transform.localPosition;
 
-        keyRevealed = true;
         keyFloating = true;
+
+        /*
+         * Explain the key before allowing the player
+         * to interact with it.
+         */
+        if (dialogueController != null)
+        {
+            yield return
+                dialogueController
+                    .PlayKeyRevealHintSequence();
+        }
+
+        keyRevealed = true;
 
         if (keyClickCollider != null)
         {
@@ -461,11 +644,11 @@ public class MemoryGardenGateManager : MonoBehaviour
             true
         );
 
-        SetInstruction(
-            "Tap the glowing key."
-        );
-
         sequenceBusy = false;
+
+        Debug.Log(
+            "The Memory Key is now clickable."
+        );
     }
 
     public bool TrySelectKey()
@@ -483,9 +666,6 @@ public class MemoryGardenGateManager : MonoBehaviour
         keyFloating = false;
         sequenceBusy = true;
 
-        /*
-         * Play the key pickup or whoosh sound.
-         */
         PlayAudio(
             keySelectClip
         );
@@ -514,22 +694,26 @@ public class MemoryGardenGateManager : MonoBehaviour
 
     private IEnumerator FlyKeyAndOpenGateRoutine()
     {
-        SetInstruction("");
-
-        SetSubtitle(
-            "The key flew towards the locked gate."
-        );
-
         if (keyControlPoint == null ||
             lockPoint == null)
         {
             Debug.LogError(
-                "Key Control Point or Lock Point has not been assigned."
+                "Key Control Point or Lock Point " +
+                "has not been assigned."
             );
 
             sequenceBusy = false;
             yield break;
         }
+
+        /*
+         * Detach the key while preserving its
+         * current world position.
+         */
+        keyRoot.transform.SetParent(
+            null,
+            true
+        );
 
         Vector3 startPosition =
             keyRoot.transform.position;
@@ -548,7 +732,8 @@ public class MemoryGardenGateManager : MonoBehaviour
 
             float progress =
                 Mathf.Clamp01(
-                    elapsed / safeDuration
+                    elapsed /
+                    safeDuration
                 );
 
             float smoothProgress =
@@ -558,17 +743,17 @@ public class MemoryGardenGateManager : MonoBehaviour
                     progress
                 );
 
-            Vector3 controlPosition =
+            Vector3 currentControlPosition =
                 keyControlPoint.position;
 
-            Vector3 endPosition =
+            Vector3 currentEndPosition =
                 lockPoint.position;
 
             keyRoot.transform.position =
                 CalculateQuadraticBezier(
                     startPosition,
-                    controlPosition,
-                    endPosition,
+                    currentControlPosition,
+                    currentEndPosition,
                     smoothProgress
                 );
 
@@ -579,8 +764,7 @@ public class MemoryGardenGateManager : MonoBehaviour
             lockPoint.position;
 
         /*
-         * Play the unlock sound when the key
-         * reaches the lock.
+         * The key has reached the lock.
          */
         PlayAudio(
             unlockClip
@@ -592,10 +776,6 @@ public class MemoryGardenGateManager : MonoBehaviour
 
         keyRoot.SetActive(false);
 
-        /*
-         * Play the gate opening sound before
-         * starting the door movement.
-         */
         PlayAudio(
             gateOpenClip
         );
@@ -605,23 +785,35 @@ public class MemoryGardenGateManager : MonoBehaviour
         );
 
         gateOpened = true;
-        sequenceBusy = false;
 
         if (gateClickCollider != null)
         {
             gateClickCollider.enabled = false;
         }
 
-        SetSubtitle(
-            "The gate to the Memory Garden opened."
-        );
+        /*
+         * GameHint is hidden and StoryBG is displayed
+         * automatically for the final butterfly dialogue.
+         */
+        if (dialogueController != null)
+        {
+            yield return
+                dialogueController
+                    .PlayGateOpenedButterflySequence();
+        }
+        else
+        {
+            Debug.LogWarning(
+                "Page2DialogueController has not been assigned. " +
+                "The final Page 2 dialogue will be skipped."
+            );
+        }
 
-        SetInstruction(
-            "Carry Lumi's Memory Seed into the garden."
-        );
+        sequenceBusy = false;
 
         Debug.Log(
-            "The Memory Garden gate has opened."
+            "The Memory Garden gate has opened. " +
+            "Page 2 has been completed."
         );
     }
 
@@ -646,7 +838,8 @@ public class MemoryGardenGateManager : MonoBehaviour
 
             float progress =
                 Mathf.Clamp01(
-                    elapsed / safeDuration
+                    elapsed /
+                    safeDuration
                 );
 
             float wave =
@@ -658,7 +851,8 @@ public class MemoryGardenGateManager : MonoBehaviour
                 );
 
             float fade =
-                1f - progress;
+                1f -
+                progress;
 
             float angle =
                 wave *
@@ -668,7 +862,8 @@ public class MemoryGardenGateManager : MonoBehaviour
             gateShakeRoot.localRotation =
                 startRotation *
                 Quaternion.Euler(
-                    lockedShakeAxis * angle
+                    lockedShakeAxis *
+                    angle
                 );
 
             yield return null;
@@ -718,7 +913,8 @@ public class MemoryGardenGateManager : MonoBehaviour
 
             float progress =
                 Mathf.Clamp01(
-                    elapsed / safeDuration
+                    elapsed /
+                    safeDuration
                 );
 
             float smoothProgress =
@@ -774,9 +970,16 @@ public class MemoryGardenGateManager : MonoBehaviour
             1f - t;
 
         return
-            inverseT * inverseT * start +
-            2f * inverseT * t * control +
-            t * t * end;
+            inverseT *
+            inverseT *
+            start +
+            2f *
+            inverseT *
+            t *
+            control +
+            t *
+            t *
+            end;
     }
 
     private IEnumerator ScaleObject(
@@ -806,7 +1009,8 @@ public class MemoryGardenGateManager : MonoBehaviour
 
             float progress =
                 Mathf.Clamp01(
-                    elapsed / duration
+                    elapsed /
+                    duration
                 );
 
             float smoothProgress =
@@ -853,26 +1057,6 @@ public class MemoryGardenGateManager : MonoBehaviour
             targetObject.SetActive(
                 isActive
             );
-        }
-    }
-
-    private void SetSubtitle(
-        string message)
-    {
-        if (subtitleText != null)
-        {
-            subtitleText.text =
-                message;
-        }
-    }
-
-    private void SetInstruction(
-        string message)
-    {
-        if (instructionText != null)
-        {
-            instructionText.text =
-                message;
         }
     }
 }
