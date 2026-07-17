@@ -112,6 +112,13 @@ public class SadTissueTaskController : MonoBehaviour
     [SerializeField] private AudioClip showHintClip;
     [SerializeField] private AudioClip taskCompletedClip;
 
+    [Header("Crying Audio")]
+    [SerializeField] private AudioSource cryingAudioSource;
+    [SerializeField] private AudioClip cryingClip;
+    [Range(0f, 1f)]
+    [SerializeField] private float cryingStartVolume = 1f;
+    [SerializeField] private bool loopCryingClip = true;
+
     [Range(0f, 1f)]
     [SerializeField] private float audioVolume = 1f;
 
@@ -195,6 +202,7 @@ public class SadTissueTaskController : MonoBehaviour
         SetHintText(tissueBoxHintText, true);
         SetObjectActive(tissueBoxHintImage, true);
         PlayOneShot(showHintClip);
+        StartCryingAudio();
 
         state = TaskState.WaitingForTissueBox;
     }
@@ -344,6 +352,7 @@ public class SadTissueTaskController : MonoBehaviour
         caughtTearCount++;
         LogDebug("Tear caught. Count=" + caughtTearCount + "/" + requiredCatchCount);
         PlayOneShot(tearCaughtClip);
+        UpdateCryingVolume();
         AnimateSadOrb();
 
         if (caughtTearCount >= requiredCatchCount)
@@ -359,6 +368,7 @@ public class SadTissueTaskController : MonoBehaviour
     {
         state = TaskState.Complete;
         SetObjectActive(hintPanel, false);
+        StopCryingAudio();
 
         if (activeTear != null)
         {
@@ -485,6 +495,7 @@ public class SadTissueTaskController : MonoBehaviour
 
         SetInitialVisibility();
         ResetTissue();
+        ResetCryingAudio();
 
         Transform sadScaleTarget = GetSadScaleTarget();
         if (sadScaleTarget != null)
@@ -870,6 +881,47 @@ public class SadTissueTaskController : MonoBehaviour
     {
         if (audioSource != null && clip != null)
             audioSource.PlayOneShot(clip, audioVolume);
+    }
+
+    private void StartCryingAudio()
+    {
+        if (cryingAudioSource == null || cryingClip == null)
+            return;
+
+        cryingAudioSource.clip = cryingClip;
+        cryingAudioSource.loop = loopCryingClip;
+        cryingAudioSource.volume = cryingStartVolume;
+
+        if (!cryingAudioSource.isPlaying)
+            cryingAudioSource.Play();
+    }
+
+    private void UpdateCryingVolume()
+    {
+        if (cryingAudioSource == null)
+            return;
+
+        int requiredCount = Mathf.Max(1, requiredCatchCount);
+        float remainingRatio = Mathf.Clamp01(1f - caughtTearCount / (float)requiredCount);
+        cryingAudioSource.volume = cryingStartVolume * remainingRatio;
+
+        if (remainingRatio <= 0.001f)
+            cryingAudioSource.Stop();
+    }
+
+    private void StopCryingAudio()
+    {
+        if (cryingAudioSource != null)
+            cryingAudioSource.Stop();
+    }
+
+    private void ResetCryingAudio()
+    {
+        if (cryingAudioSource == null)
+            return;
+
+        cryingAudioSource.Stop();
+        cryingAudioSource.volume = cryingStartVolume;
     }
 
     private void LogDebug(string message)

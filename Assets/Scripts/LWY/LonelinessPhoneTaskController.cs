@@ -379,6 +379,8 @@ public class LonelinessPhoneTaskController : MonoBehaviour
                 yield return new WaitForSeconds(selectedAvatar.VoiceClip.length);
         }
 
+        SetConversationText("", false);
+
         yield return ShrinkLonelyOrbRoutine();
 
         PlayOneShot(taskCompletedClip);
