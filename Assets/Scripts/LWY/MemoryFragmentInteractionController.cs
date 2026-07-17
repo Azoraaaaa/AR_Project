@@ -529,24 +529,17 @@ public class MemoryFragmentInteractionController : MonoBehaviour
         if (netTransform == null)
             return;
 
+        netTransform.localPosition = netStartLocalPosition;
+        netTransform.localRotation = netStartLocalRotation;
+        netTransform.localScale = netStartLocalScale;
+
         if (netRigidbody != null)
         {
             netRigidbody.linearVelocity = Vector3.zero;
             netRigidbody.angularVelocity = Vector3.zero;
-            netRigidbody.MovePosition(netTransform.parent != null
-                ? netTransform.parent.TransformPoint(netStartLocalPosition)
-                : netStartLocalPosition);
-            netRigidbody.MoveRotation(netTransform.parent != null
-                ? netTransform.parent.rotation * netStartLocalRotation
-                : netStartLocalRotation);
+            netRigidbody.position = netRigidbody.transform.position;
+            netRigidbody.rotation = netRigidbody.transform.rotation;
         }
-        else
-        {
-            netTransform.localPosition = netStartLocalPosition;
-            netTransform.localRotation = netStartLocalRotation;
-        }
-
-        netTransform.localScale = netStartLocalScale;
     }
 
     private void CheckLightCaughtByNet()
@@ -591,6 +584,7 @@ public class MemoryFragmentInteractionController : MonoBehaviour
         SetHintText(memory.MemoryHintText, true);
         yield return ShowMemoryImageRoutine(memory.MemoryImage);
 
+        ReturnNetToStart();
         SetHintText(catchLightsHintText, true);
         yield return MarkStarCollectedRoutine(memory);
 
