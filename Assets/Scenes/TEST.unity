@@ -136,7 +136,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!108 &410087040
 Light:
   m_ObjectHideFlags: 0
@@ -273,7 +273,7 @@ MonoBehaviour:
   ImageTargetTemplate: {fileID: 1252299012}
   Pages:
   - Metadata: page_00
-    ContentPrefab: {fileID: 4013750093904263095, guid: 5da6e62aed1a2ff4cb57b910b091219f,
+    ContentPrefab: {fileID: 1926404339121232135, guid: 7261ec7114d941e46a08ad9a37a15616,
       type: 3}
     NarrationClip: {fileID: 0}
   - Metadata: abcd
