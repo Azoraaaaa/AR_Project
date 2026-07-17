@@ -4,6 +4,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.Rendering;
+using UnityEngine.Events;
 
 public class FlowController2 : MonoBehaviour
 {
@@ -143,7 +144,36 @@ public class FlowController2 : MonoBehaviour
     [SerializeField] private float dogDisappearVolume = 1f;
 
     [Header("Final Light Point")]
+    [Tooltip("必须放在 DogB 外面，否则关闭 DogB 后光点也会消失")]
     [SerializeField] private GameObject lightPointRoot;
+
+    [Tooltip("决定光点往哪个方向飞。建议拖入 Page11Prefab 或场景的竖直方向参考物体")]
+    [SerializeField] private Transform lightPointFlyDirectionReference;
+
+    [Tooltip("光点出现后，停留多久才开始飞走")]
+    [SerializeField] private float lightPointHoldDuration = 0.5f;
+
+    [Tooltip("光点向上飞行的时间")]
+    [SerializeField] private float lightPointFlyDuration = 1.5f;
+
+    [Tooltip("光点向上飞行的距离")]
+    [SerializeField] private float lightPointFlyDistance = 0.5f;
+
+    [Tooltip("飞行速度曲线")]
+    [SerializeField]
+    private AnimationCurve lightPointFlyCurve =
+        AnimationCurve.EaseInOut(0f, 0f, 1f, 1f);
+
+    [Tooltip("飞行时是否同时逐渐缩小")]
+    [SerializeField] private bool shrinkWhileFlying = true;
+
+    [Range(0f, 1f)]
+    [Tooltip("飞行结束时保留的缩放比例，0 代表完全缩小")]
+    [SerializeField] private float lightPointFinalScaleMultiplier = 0.15f;
+
+    [Header("Page Complete")]
+    [Tooltip("光点飞走并消失后触发，可用于连接下一页")]
+    [SerializeField] private UnityEvent onPageCompleted;
 
     private readonly HashSet<HiddenFeelingItem> collectedItems =
         new HashSet<HiddenFeelingItem>();
@@ -161,6 +191,9 @@ public class FlowController2 : MonoBehaviour
     private bool endingStarted;
     private bool goodbyeAvailable;
     private bool pageEnded;
+    private Vector3 lightPointInitialLocalPosition;
+    private Vector3 lightPointInitialLocalScale;
+    private bool lightPointTransformCached;
 
     private int requiredFeelingCount;
 
@@ -189,6 +222,7 @@ public class FlowController2 : MonoBehaviour
 
     private void Awake()
     {
+        CacheLightPointInitialTransform();
         PrepareInitialState();
 
         if (goodbyeButton != null)
@@ -197,6 +231,19 @@ public class FlowController2 : MonoBehaviour
                 OnGoodbyeButtonClicked
             );
         }
+    }
+    private void CacheLightPointInitialTransform()
+    {
+        if (lightPointRoot == null)
+            return;
+
+        lightPointInitialLocalPosition =
+            lightPointRoot.transform.localPosition;
+
+        lightPointInitialLocalScale =
+            lightPointRoot.transform.localScale;
+
+        lightPointTransformCached = true;
     }
     private bool ApplyTransparentDogMaterials()
     {
@@ -613,7 +660,20 @@ public class FlowController2 : MonoBehaviour
             goodbyeButton.interactable = false;
 
         if (lightPointRoot != null)
+        {
+            if (!lightPointTransformCached)
+            {
+                CacheLightPointInitialTransform();
+            }
+
+            lightPointRoot.transform.localPosition =
+                lightPointInitialLocalPosition;
+
+            lightPointRoot.transform.localScale =
+                lightPointInitialLocalScale;
+
             lightPointRoot.SetActive(false);
+        }
 
         if (dogRoot != null)
             dogRoot.SetActive(true);
@@ -1244,7 +1304,8 @@ public class FlowController2 : MonoBehaviour
         }
 
         /*
-         * 渐隐开始的同一时刻播放消失音效。
+         * 小狗开始渐隐时，
+         * 同一时刻播放消失音效。
          */
         if (sfxAudioSource != null &&
             dogDisappearClip != null)
@@ -1264,9 +1325,21 @@ public class FlowController2 : MonoBehaviour
             dogRoot.SetActive(false);
         }
 
-        ShowLightPoint();
+        /*
+         * 小狗完全消失后：
+         * 光点出现 → 停留 → 向上飞 → 消失。
+         */
+        yield return StartCoroutine(
+            LightPointFlyAwayRoutine()
+        );
 
         pageEnded = true;
+
+        /*
+         * Page 11 完成。
+         * 可在 Inspector 连接下一页流程。
+         */
+        onPageCompleted?.Invoke();
     }
 
     // =========================================================
@@ -1393,6 +1466,17 @@ public class FlowController2 : MonoBehaviour
             return;
         }
 
+        if (!lightPointTransformCached)
+        {
+            CacheLightPointInitialTransform();
+        }
+
+        lightPointRoot.transform.localPosition =
+            lightPointInitialLocalPosition;
+
+        lightPointRoot.transform.localScale =
+            lightPointInitialLocalScale;
+
         lightPointRoot.SetActive(true);
 
         if (lightPointParticles == null ||
@@ -1414,7 +1498,164 @@ public class FlowController2 : MonoBehaviour
             particle.Play(true);
         }
     }
+    private IEnumerator LightPointFlyAwayRoutine()
+    {
+        if (lightPointRoot == null)
+        {
+            Debug.LogError(
+                "FlowController2: Light Point Root is missing."
+            );
 
+            yield break;
+        }
+
+        ShowLightPoint();
+
+        /*
+         * 光点先停留一下，
+         * 让玩家看到 Lumi 变成了光。
+         */
+        if (lightPointHoldDuration > 0f)
+        {
+            yield return new WaitForSecondsRealtime(
+                lightPointHoldDuration
+            );
+        }
+
+        Transform lightTransform =
+            lightPointRoot.transform;
+
+        Vector3 startLocalPosition =
+            lightTransform.localPosition;
+
+        Vector3 startLocalScale =
+            lightTransform.localScale;
+
+        /*
+         * 默认使用光点自身父对象的上方向。
+         * 也可以在 Inspector 指定方向参考物体。
+         */
+        Vector3 worldFlyDirection;
+
+        if (lightPointFlyDirectionReference != null)
+        {
+            worldFlyDirection =
+                lightPointFlyDirectionReference.up;
+        }
+        else if (lightTransform.parent != null)
+        {
+            worldFlyDirection =
+                lightTransform.parent.up;
+        }
+        else
+        {
+            worldFlyDirection =
+                Vector3.up;
+        }
+
+        worldFlyDirection.Normalize();
+
+        Vector3 localFlyDirection;
+
+        if (lightTransform.parent != null)
+        {
+            localFlyDirection =
+                lightTransform.parent
+                    .InverseTransformDirection(
+                        worldFlyDirection
+                    )
+                    .normalized;
+        }
+        else
+        {
+            localFlyDirection =
+                worldFlyDirection;
+        }
+
+        Vector3 endLocalPosition =
+            startLocalPosition +
+            localFlyDirection *
+            lightPointFlyDistance;
+
+        Vector3 endLocalScale =
+            startLocalScale *
+            lightPointFinalScaleMultiplier;
+
+        float duration =
+            Mathf.Max(
+                0.05f,
+                lightPointFlyDuration
+            );
+
+        float elapsed = 0f;
+
+        while (elapsed < duration)
+        {
+            elapsed +=
+                Time.unscaledDeltaTime;
+
+            float normalizedTime =
+                Mathf.Clamp01(
+                    elapsed / duration
+                );
+
+            float curveValue =
+                lightPointFlyCurve != null
+                    ? lightPointFlyCurve
+                        .Evaluate(normalizedTime)
+                    : normalizedTime;
+
+            lightTransform.localPosition =
+                Vector3.LerpUnclamped(
+                    startLocalPosition,
+                    endLocalPosition,
+                    curveValue
+                );
+
+            if (shrinkWhileFlying)
+            {
+                lightTransform.localScale =
+                    Vector3.LerpUnclamped(
+                        startLocalScale,
+                        endLocalScale,
+                        curveValue
+                    );
+            }
+
+            yield return null;
+        }
+
+        lightTransform.localPosition =
+            endLocalPosition;
+
+        if (shrinkWhileFlying)
+        {
+            lightTransform.localScale =
+                endLocalScale;
+        }
+
+        StopLightPointParticles();
+
+        lightPointRoot.SetActive(false);
+    }
+    private void StopLightPointParticles()
+    {
+        if (lightPointParticles == null)
+            return;
+
+        foreach (ParticleSystem particle
+                 in lightPointParticles)
+        {
+            if (particle == null)
+                continue;
+
+            particle.Stop(
+                true,
+                ParticleSystemStopBehavior
+                    .StopEmittingAndClear
+            );
+        }
+    }
     // =========================================================
     // Audio
     // =========================================================
