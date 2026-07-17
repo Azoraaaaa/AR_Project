@@ -1,0 +1,43 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8c5664d202bc936499baeb5e14e0dae8, type: 3}
+  m_Name: Page2Dialogue
+  m_EditorClassIdentifier: 
+  introButterflyLines:
+  - text: You have brought Lumi's Memory Seed to the Memory Garden.
+    holdAfter: 2.5
+  - text: A Memory Seed does not grow from water or sunlight alone.
+    holdAfter: 2.5
+  - text: It grows as the heart learns to understand, to feel, and to remember.
+    holdAfter: 3
+  - text: The garden can guide you, though not every answer grows among its flowers.
+    holdAfter: 3
+  - text: First, we must get inside. Try opening the gate.
+    holdAfter: 0
+  lockedGateHintLines:
+  - text: The gate will not open. It is locked.
+    holdAfter: 2
+  - text: Look closely. Lumi may have left a trail for you to follow.
+    holdAfter: 1
+  pawTrailHint: Follow Lumi's paw prints. Tap them one by one.
+  keyRevealHintLines:
+  - text: The last paw print fades, and a small key begins to shine.
+    holdAfter: 2.5
+  - text: Lumi's trail has led you to the Memory Key. Tap it to unlock the gate.
+    holdAfter: 0
+  gateOpenedButterflyLines:
+  - text: The path to the Memory Garden is open.
+    holdAfter: 2.5
+  - text: Carry the Memory Seed inside. Your journey of understanding has only begun.
+    holdAfter: 3
+  - text: Turn to the next page and enter the garden.
+    holdAfter: 0
