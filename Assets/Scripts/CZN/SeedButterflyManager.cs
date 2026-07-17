@@ -6,36 +6,76 @@ public class SeedButterflyManager : MonoBehaviour
 {
     [Header("Seed")]
     [SerializeField] private GameObject seedObject;
+
+    [Tooltip("The point where the seed first appears above Lumi's bed.")]
     [SerializeField] private Transform seedRevealPoint;
-    [SerializeField] private Transform seedFocusPoint;
+
+    [Tooltip("The final position of the seed inside the AR scene.")]
+    [SerializeField] private Transform seedDisplayPoint;
+
     [SerializeField] private Collider seedClickCollider;
     [SerializeField] private GameObject seedTapHint;
     [SerializeField] private GameObject seedSparkle;
 
     [Header("Seed Timing")]
-    [SerializeField] private float revealDelay = 0.8f;
+    [Tooltip("How long to wait before the seed appears.")]
+    [SerializeField] private float revealDelay = 3f;
+
     [SerializeField] private float seedRevealDuration = 0.6f;
     [SerializeField] private float seedMoveDuration = 1.2f;
-    [SerializeField] private float focusPauseDuration = 0.8f;
+    [SerializeField] private float displayPauseDuration = 0.8f;
 
     [Header("Butterfly")]
     [SerializeField] private GameObject butterflyObject;
     [SerializeField] private Animator butterflyAnimator;
 
     [SerializeField]
-    private string butterflyFlyState = "Base Layer.Move";
+    private string butterflyFlyState =
+        "Base Layer.Move";
 
+    [Tooltip("Place this point near the window.")]
     [SerializeField] private Transform butterflyStartPoint;
+
+    [Tooltip(
+        "Place this point between the window and the seed " +
+        "to create a curved flight path."
+    )]
     [SerializeField] private Transform butterflyControlPoint;
+
+    [Tooltip(
+        "The final position of the butterfly beside the seed."
+    )]
     [SerializeField] private Transform butterflyEndPoint;
 
     [SerializeField] private float butterflyFlightDuration = 2.5f;
+
+    [Header("Sequence Audio")]
+    [Tooltip(
+        "Used for short sounds such as the seed reveal " +
+        "and seed selection sounds."
+    )]
+    [SerializeField] private AudioSource sequenceOneShotSource;
+
+    [Tooltip(
+        "Used for the butterfly wing sound that continues looping."
+    )]
+    [SerializeField] private AudioSource butterflyLoopSource;
+
+    [Tooltip("Played when the seed appears.")]
+    [SerializeField] private AudioClip seedRevealClip;
+
+    [Tooltip("Played when the player selects the seed.")]
+    [SerializeField] private AudioClip seedSelectClip;
+
+    [Tooltip("Looped while the butterfly is visible.")]
+    [SerializeField] private AudioClip butterflyWingLoopClip;
 
     [Header("Text")]
     [SerializeField] private TMP_Text subtitleText;
     [SerializeField] private TMP_Text instructionText;
 
     private Vector3 seedOriginalScale;
+    private Vector3 butterflyOriginalScale;
 
     private bool sequenceStarted;
     private bool seedRevealed;
@@ -56,9 +96,45 @@ public class SeedButterflyManager : MonoBehaviour
             seedClickCollider.enabled = false;
         }
 
+        if (butterflyObject != null)
+        {
+            butterflyOriginalScale =
+                butterflyObject.transform.localScale;
+
+            butterflyObject.SetActive(false);
+        }
+
         SetObjectActive(seedTapHint, false);
         SetObjectActive(seedSparkle, false);
-        SetObjectActive(butterflyObject, false);
+
+        InitialiseAudioSources();
+    }
+
+    private void OnDisable()
+    {
+        if (sequenceOneShotSource != null)
+        {
+            sequenceOneShotSource.Stop();
+        }
+
+        StopButterflyWingLoop();
+    }
+
+    private void InitialiseAudioSources()
+    {
+        if (sequenceOneShotSource != null)
+        {
+            sequenceOneShotSource.playOnAwake = false;
+            sequenceOneShotSource.loop = false;
+            sequenceOneShotSource.spatialBlend = 0f;
+        }
+
+        if (butterflyLoopSource != null)
+        {
+            butterflyLoopSource.playOnAwake = false;
+            butterflyLoopSource.loop = true;
+            butterflyLoopSource.spatialBlend = 0f;
+        }
     }
 
     public void BeginSequence()
@@ -83,34 +159,67 @@ public class SeedButterflyManager : MonoBehaviour
             "Something above Lumi's bed began to glow."
         );
 
-        if (seedSparkle != null &&
-            seedRevealPoint != null)
-        {
-            seedSparkle.transform.position =
-                seedRevealPoint.position;
-
-            seedSparkle.SetActive(true);
-        }
-
-        yield return new WaitForSeconds(
-            Mathf.Max(0f, revealDelay)
-        );
-
-        if (seedObject == null ||
-            seedRevealPoint == null)
+        if (seedRevealPoint == null)
         {
             Debug.LogError(
-                "Seed Object or Seed Reveal Point is missing."
+                "Seed Reveal Point has not been assigned."
             );
 
             yield break;
         }
 
-        seedObject.transform.position =
-            seedRevealPoint.position;
+        if (seedSparkle != null)
+        {
+            seedSparkle.transform.SetParent(
+                seedRevealPoint,
+                false
+            );
 
-        seedObject.transform.rotation =
-            seedRevealPoint.rotation;
+            seedSparkle.transform.localPosition =
+                Vector3.zero;
+
+            seedSparkle.transform.localRotation =
+                Quaternion.identity;
+
+            seedSparkle.SetActive(true);
+        }
+
+        /*
+         * Wait before the seed appears.
+         */
+        yield return new WaitForSeconds(
+            Mathf.Max(
+                0f,
+                revealDelay
+            )
+        );
+
+        if (seedObject == null)
+        {
+            Debug.LogError(
+                "Seed Object has not been assigned."
+            );
+
+            yield break;
+        }
+
+        /*
+         * Play the seed reveal sound.
+         */
+        PlaySequenceOneShot(
+            seedRevealClip
+        );
+
+        seedObject.transform.SetParent(
+            seedRevealPoint,
+            false
+        );
+
+        seedObject.transform.localPosition =
+            Vector3.zero;
+
+        seedObject.transform.localRotation =
+            Quaternion.identity;
 
         seedObject.transform.localScale =
             Vector3.zero;
@@ -134,7 +243,10 @@ public class SeedButterflyManager : MonoBehaviour
             seedClickCollider.enabled = true;
         }
 
-        SetObjectActive(seedTapHint, true);
+        SetObjectActive(
+            seedTapHint,
+            true
+        );
 
         SetInstruction(
             "Tap the seed above Lumi's bed."
@@ -156,22 +268,36 @@ public class SeedButterflyManager : MonoBehaviour
 
         seedSelected = true;
 
+        /*
+         * Play the seed pickup sound.
+         */
+        PlaySequenceOneShot(
+            seedSelectClip
+        );
+
         if (seedClickCollider != null)
         {
             seedClickCollider.enabled = false;
         }
 
-        SetObjectActive(seedTapHint, false);
-        SetObjectActive(seedSparkle, false);
+        SetObjectActive(
+            seedTapHint,
+            false
+        );
+
+        SetObjectActive(
+            seedSparkle,
+            false
+        );
 
         StartCoroutine(
-            FocusSeedAndButterflyRoutine()
+            MoveSeedAndButterflyRoutine()
         );
 
         return true;
     }
 
-    private IEnumerator FocusSeedAndButterflyRoutine()
+    private IEnumerator MoveSeedAndButterflyRoutine()
     {
         SetInstruction("");
 
@@ -179,18 +305,18 @@ public class SeedButterflyManager : MonoBehaviour
             "You found the seed Lumi left behind."
         );
 
-        if (seedFocusPoint == null)
+        if (seedDisplayPoint == null)
         {
             Debug.LogError(
-                "Seed Display Point is missing."
+                "Seed Display Point has not been assigned."
             );
 
             yield break;
         }
 
         /*
-         * Detach the seed while preserving its current
-         * world position.
+         * Detach the seed while keeping its
+         * current world position and rotation.
          */
         seedObject.transform.SetParent(
             null,
@@ -205,13 +331,19 @@ public class SeedButterflyManager : MonoBehaviour
 
         float elapsed = 0f;
 
-        while (elapsed < seedMoveDuration)
+        float safeDuration =
+            Mathf.Max(
+                0.01f,
+                seedMoveDuration
+            );
+
+        while (elapsed < safeDuration)
         {
             elapsed += Time.deltaTime;
 
             float progress =
                 Mathf.Clamp01(
-                    elapsed / seedMoveDuration
+                    elapsed / safeDuration
                 );
 
             float smoothProgress =
@@ -221,40 +353,31 @@ public class SeedButterflyManager : MonoBehaviour
                     progress
                 );
 
-            /*
-             * Read the scene target position every frame.
-             * This allows the destination to continue
-             * following the tracked AR page while moving.
-             */
-            Vector3 currentTargetPosition =
-                seedFocusPoint.position;
+            Vector3 currentEndPosition =
+                seedDisplayPoint.position;
 
-            Quaternion currentTargetRotation =
-                seedFocusPoint.rotation;
+            Quaternion currentEndRotation =
+                seedDisplayPoint.rotation;
 
             seedObject.transform.position =
                 Vector3.Lerp(
                     seedStartPosition,
-                    currentTargetPosition,
+                    currentEndPosition,
                     smoothProgress
                 );
 
             seedObject.transform.rotation =
                 Quaternion.Slerp(
                     seedStartRotation,
-                    currentTargetRotation,
+                    currentEndRotation,
                     smoothProgress
                 );
 
             yield return null;
         }
 
-        /*
-         * Attach the seed to the scene display point.
-         * It now follows the AR page, not the camera.
-         */
         seedObject.transform.SetParent(
-            seedFocusPoint,
+            seedDisplayPoint,
             false
         );
 
@@ -264,8 +387,14 @@ public class SeedButterflyManager : MonoBehaviour
         seedObject.transform.localRotation =
             Quaternion.identity;
 
+        seedObject.transform.localScale =
+            seedOriginalScale;
+
         yield return new WaitForSeconds(
-            Mathf.Max(0f, focusPauseDuration)
+            Mathf.Max(
+                0f,
+                displayPauseDuration
+            )
         );
 
         yield return StartCoroutine(
@@ -281,46 +410,73 @@ public class SeedButterflyManager : MonoBehaviour
             butterflyEndPoint == null)
         {
             Debug.LogError(
-                "Butterfly object or flight points are missing."
+                "Butterfly Object or one of the " +
+                "flight points is missing."
             );
 
             yield break;
         }
 
+        /*
+         * Detach the butterfly while keeping its
+         * current correct world-facing direction.
+         */
         butterflyObject.transform.SetParent(
             null,
             true
         );
 
+        /*
+         * Store the butterfly's current correct direction.
+         * Do not use ButterflyStartPoint.rotation.
+         */
+        Quaternion butterflyFlightRotation =
+            butterflyObject.transform.rotation;
+
+        /*
+         * Move the butterfly to the starting position.
+         * Its rotation remains unchanged.
+         */
         butterflyObject.transform.position =
             butterflyStartPoint.position;
+
+        butterflyObject.transform.rotation =
+            butterflyFlightRotation;
+
+        butterflyObject.transform.localScale =
+            butterflyOriginalScale;
 
         butterflyObject.SetActive(true);
 
         PlayButterflyAnimation();
 
+        /*
+         * Start the looping butterfly wing sound.
+         */
+        StartButterflyWingLoop();
+
         SetSubtitle(
             "A butterfly flew in through the window."
         );
 
-        Vector3 start =
+        Vector3 startPosition =
             butterflyStartPoint.position;
-
-        Vector3 control =
-            butterflyControlPoint.position;
-
-        Vector3 end =
-            butterflyEndPoint.position;
 
         float elapsed = 0f;
 
-        while (elapsed < butterflyFlightDuration)
+        float safeDuration =
+            Mathf.Max(
+                0.01f,
+                butterflyFlightDuration
+            );
+
+        while (elapsed < safeDuration)
         {
             elapsed += Time.deltaTime;
 
             float progress =
                 Mathf.Clamp01(
-                    elapsed / butterflyFlightDuration
+                    elapsed / safeDuration
                 );
 
             float smoothProgress =
@@ -330,24 +486,43 @@ public class SeedButterflyManager : MonoBehaviour
                     progress
                 );
 
+            Vector3 currentControlPosition =
+                butterflyControlPoint.position;
+
+            Vector3 currentEndPosition =
+                butterflyEndPoint.position;
+
             butterflyObject.transform.position =
                 CalculateQuadraticBezier(
-                    start,
-                    control,
-                    end,
+                    startPosition,
+                    currentControlPosition,
+                    currentEndPosition,
                     smoothProgress
                 );
+
+            /*
+             * Keep the same correct facing direction
+             * throughout the entire flight.
+             */
+            butterflyObject.transform.rotation =
+                butterflyFlightRotation;
 
             yield return null;
         }
 
+        /*
+         * Ensure that the butterfly reaches
+         * the exact final position.
+         */
         butterflyObject.transform.position =
-            end;
+            butterflyEndPoint.position;
+
+        butterflyObject.transform.rotation =
+            butterflyFlightRotation;
 
         /*
-         * Attach the butterfly to its final point.
-         * Its Animator continues playing, so the wings
-         * continue flapping after the movement stops.
+         * Attach it to ButterflyEndPoint while
+         * preserving the current world rotation.
          */
         butterflyObject.transform.SetParent(
             butterflyEndPoint,
@@ -357,20 +532,39 @@ public class SeedButterflyManager : MonoBehaviour
         butterflyObject.transform.localPosition =
             Vector3.zero;
 
-        yield return new WaitForSeconds(0.5f);
+        butterflyObject.transform.localScale =
+            butterflyOriginalScale;
+
+        /*
+         * Do not use:
+         *
+         * butterflyObject.transform.localRotation =
+         *     Quaternion.identity;
+         *
+         * Otherwise the butterfly may suddenly turn
+         * when it reaches the final point.
+         */
+
+        yield return new WaitForSeconds(
+            0.5f
+        );
 
         SetSubtitle(
             "\"This is a Memory Seed,\" said the butterfly."
         );
 
-        yield return new WaitForSeconds(2.5f);
+        yield return new WaitForSeconds(
+            2.5f
+        );
 
         SetSubtitle(
             "\"To help it bloom, you must enter " +
             "the Memory Garden.\""
         );
 
-        yield return new WaitForSeconds(3f);
+        yield return new WaitForSeconds(
+            3f
+        );
 
         SetInstruction(
             "Turn to the next page."
@@ -381,6 +575,10 @@ public class SeedButterflyManager : MonoBehaviour
     {
         if (butterflyAnimator == null)
         {
+            Debug.LogError(
+                "Butterfly Animator has not been assigned."
+            );
+
             return;
         }
 
@@ -390,6 +588,9 @@ public class SeedButterflyManager : MonoBehaviour
 
         butterflyAnimator.cullingMode =
             AnimatorCullingMode.AlwaysAnimate;
+
+        butterflyAnimator.Rebind();
+        butterflyAnimator.Update(0f);
 
         int stateHash =
             Animator.StringToHash(
@@ -415,6 +616,55 @@ public class SeedButterflyManager : MonoBehaviour
         );
 
         butterflyAnimator.Update(0f);
+    }
+
+    private void PlaySequenceOneShot(
+        AudioClip clip)
+    {
+        if (sequenceOneShotSource == null ||
+            clip == null)
+        {
+            return;
+        }
+
+        sequenceOneShotSource.PlayOneShot(
+            clip
+        );
+    }
+
+    private void StartButterflyWingLoop()
+    {
+        if (butterflyLoopSource == null ||
+            butterflyWingLoopClip == null)
+        {
+            return;
+        }
+
+        butterflyLoopSource.Stop();
+
+        butterflyLoopSource.clip =
+            butterflyWingLoopClip;
+
+        butterflyLoopSource.loop =
+            true;
+
+        butterflyLoopSource.Play();
+    }
+
+    private void StopButterflyWingLoop()
+    {
+        if (butterflyLoopSource == null)
+        {
+            return;
+        }
+
+        if (butterflyLoopSource.isPlaying)
+        {
+            butterflyLoopSource.Stop();
+        }
+
+        butterflyLoopSource.clip =
+            null;
     }
 
     private Vector3 CalculateQuadraticBezier(
@@ -489,7 +739,9 @@ public class SeedButterflyManager : MonoBehaviour
     {
         if (targetObject != null)
         {
-            targetObject.SetActive(isActive);
+            targetObject.SetActive(
+                isActive
+            );
         }
     }
 
