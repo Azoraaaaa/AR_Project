@@ -14,5 +14,5 @@ public class AnimationSound : MonoBehaviour
         }
 
         audioSource.PlayOneShot(soundClip);
-    }s
+    }
 }
