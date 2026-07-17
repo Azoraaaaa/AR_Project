@@ -6,6 +6,10 @@ public class Page1MemoryManager : MonoBehaviour
 {
     private const int TotalMemoryCount = 4;
 
+    [Header("Next Story Sequence")]
+    [SerializeField]
+    private SeedButterflyManager seedButterflyManager;
+
     [Header("Run Memory")]
     [SerializeField] private GameObject runMemoryRoot;
     [SerializeField] private Animator runDogAnimator;
@@ -629,17 +633,21 @@ public class Page1MemoryManager : MonoBehaviour
     {
         SetInstruction("");
 
-        SetSubtitle(
-            "The memories faded, but something " +
-            "near Lumi's collar began to glow."
-        );
-
         Debug.Log(
             "All four Lumi memories " +
             "have been completed."
         );
 
-        // Start the seed reveal sequence here later.
+        if (seedButterflyManager != null)
+        {
+            seedButterflyManager.BeginSequence();
+        }
+        else
+        {
+            Debug.LogError(
+                "SeedButterflyManager has not been assigned."
+            );
+        }
     }
 
     public void HideCurrentMemory()
