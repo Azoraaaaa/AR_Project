@@ -95,15 +95,20 @@ public class FlowerTaskInteractionController : MonoBehaviour
     public TaskIndexEvent TaskStarted = new TaskIndexEvent();
     public TaskIndexEvent TaskCompleted = new TaskIndexEvent();
     public UnityEvent AllTasksCompleted = new UnityEvent();
+    public UnityEvent FlowerDragStarted = new UnityEvent();
+    public UnityEvent FlowerDropFailed = new UnityEvent();
     public UnityEvent FlowerPlaced = new UnityEvent();
 
     InteractionState mState = InteractionState.WaitingForFirstFlowerTouch;
     readonly Dictionary<GameObject, bool> mOriginalModelStates = new Dictionary<GameObject, bool>();
     Plane mDragPlane;
     Vector3 mDragOffset;
+    Vector3 mFlowerStartLocalPosition;
+    Quaternion mFlowerStartLocalRotation;
     int mCurrentTaskIndex = -1;
     bool mIsBusy;
     bool mIsDraggingFlower;
+    bool mHasFlowerStartPose;
     string mLastDebugMessage = "";
     Button mRegisteredTaskCompleteButton;
 
@@ -133,6 +138,7 @@ public class FlowerTaskInteractionController : MonoBehaviour
         ConfigureUiCanvases();
 
         CacheOriginalModelStates();
+        CacheFlowerStartPose();
 
         RegisterTaskCompleteButtonListener();
     }
@@ -149,6 +155,7 @@ public class FlowerTaskInteractionController : MonoBehaviour
     {
         PrepareClickableObjects();
         ValidateSetup();
+        CacheFlowerStartPose();
         ResetInteraction();
     }
 
@@ -221,6 +228,7 @@ public class FlowerTaskInteractionController : MonoBehaviour
         SetAllOrbsVisible(false);
         SetTaskCompleteButtonVisible(false);
         SetPanelVisibleInstant(false);
+        ReturnFlowerToStart();
     }
 
     public void CompleteCurrentTask()
@@ -429,6 +437,7 @@ public class FlowerTaskInteractionController : MonoBehaviour
             mDragOffset = Vector3.zero;
 
         mIsDraggingFlower = true;
+        FlowerDragStarted.Invoke();
     }
 
     void DragFlower(Vector2 screenPosition)
@@ -447,7 +456,11 @@ public class FlowerTaskInteractionController : MonoBehaviour
         mIsDraggingFlower = false;
 
         if (!IsFlowerInDropZone())
+        {
+            ReturnFlowerToStart();
+            FlowerDropFailed.Invoke();
             return;
+        }
 
         if (SnapToDropPoint && DropSnapPoint != null && FlowerObject != null)
             FlowerObject.transform.position = DropSnapPoint.position;
@@ -467,6 +480,25 @@ public class FlowerTaskInteractionController : MonoBehaviour
 
         Vector3 closestPoint = DropZoneCollider.ClosestPoint(flowerPosition);
         return Vector3.Distance(flowerPosition, closestPoint) <= DropAcceptDistance;
+    }
+
+    void CacheFlowerStartPose()
+    {
+        if (mHasFlowerStartPose || FlowerObject == null)
+            return;
+
+        mFlowerStartLocalPosition = FlowerObject.transform.localPosition;
+        mFlowerStartLocalRotation = FlowerObject.transform.localRotation;
+        mHasFlowerStartPose = true;
+    }
+
+    void ReturnFlowerToStart()
+    {
+        if (!mHasFlowerStartPose || FlowerObject == null)
+            return;
+
+        FlowerObject.transform.localPosition = mFlowerStartLocalPosition;
+        FlowerObject.transform.localRotation = mFlowerStartLocalRotation;
     }
 
     bool TryGetPrimaryPointer(out PointerInput pointer)

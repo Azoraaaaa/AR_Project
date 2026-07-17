@@ -68,6 +68,7 @@ public class FlowerEmotionGuideController : MonoBehaviour
     [SerializeField] private string hintPanelName = "HintPanel";
     [SerializeField] private string hintTextName = "HintText";
     [SerializeField] private string placementCircleHintName = "PlacementCircleHint";
+    [SerializeField] private string orbCircleHintName = "OrbCircleHint";
     [SerializeField] private string fingerHintName = "FingerHint";
     [SerializeField] private string propsBarBeforeImageName = "PropsBarBeforeImage";
     [SerializeField] private string propsBarAfterImageName = "PropsBarAfterImage";
@@ -75,6 +76,9 @@ public class FlowerEmotionGuideController : MonoBehaviour
     [Header("World Hints")]
     [Tooltip("Hint circle canvas for the flower drop position")]
     [SerializeField] private GameObject placementCircleHint;
+
+    [Tooltip("Hint circle canvas for choosing emotion orbs. Position it manually in the prefab or scene")]
+    [SerializeField] private GameObject orbCircleHint;
 
     [Tooltip("Finger hint canvas. Supports World Space and Screen Space UI")]
     [SerializeField] private GameObject fingerHint;
@@ -254,6 +258,23 @@ public class FlowerEmotionGuideController : MonoBehaviour
         StartGuideRoutine(FlowerPlacedRoutine());
     }
 
+    private void OnFlowerDragStarted()
+    {
+        SetObjectActive(fingerHint, false);
+    }
+
+    private void OnFlowerDropFailed()
+    {
+        if (flowerController != null && flowerController.HasRemainingTasks)
+            return;
+
+        SetHintText(finalFlowerHintText, true);
+        SetObjectActive(placementCircleHint, true);
+        SetObjectActive(orbCircleHint, false);
+        ShowFingerHint(GetFlowerHintTarget());
+        PlayOneShot(showHintClip);
+    }
+
     private IEnumerator PlayDialogue(DialogueLine[] lines)
     {
         if (lines == null || lines.Length == 0)
@@ -286,6 +307,7 @@ public class FlowerEmotionGuideController : MonoBehaviour
     {
         SetHintText(message, true);
         SetObjectActive(placementCircleHint, true);
+        SetObjectActive(orbCircleHint, false);
         ShowFingerHint(GetFlowerHintTarget());
         PlayOneShot(showHintClip);
     }
@@ -294,7 +316,8 @@ public class FlowerEmotionGuideController : MonoBehaviour
     {
         SetHintText(orbHintText, true);
         SetObjectActive(placementCircleHint, false);
-        ShowFingerHint(GetOrbHintTarget());
+        SetObjectActive(fingerHint, false);
+        SetObjectActive(orbCircleHint, true);
         PlayOneShot(showHintClip);
     }
 
@@ -302,6 +325,7 @@ public class FlowerEmotionGuideController : MonoBehaviour
     {
         SetObjectActive(hintPanel, false);
         SetObjectActive(placementCircleHint, false);
+        SetObjectActive(orbCircleHint, false);
         SetObjectActive(fingerHint, false);
 
         if (playSound)
@@ -589,6 +613,9 @@ public class FlowerEmotionGuideController : MonoBehaviour
         if (placementCircleHint == null)
             placementCircleHint = FindSceneGameObject(placementCircleHintName);
 
+        if (orbCircleHint == null)
+            orbCircleHint = FindSceneGameObject(orbCircleHintName);
+
         if (fingerHint == null)
             fingerHint = FindSceneGameObject(fingerHintName);
 
@@ -664,6 +691,8 @@ public class FlowerEmotionGuideController : MonoBehaviour
         flowerController.TaskStarted.AddListener(OnTaskStarted);
         flowerController.TaskCompleted.AddListener(OnTaskCompleted);
         flowerController.AllTasksCompleted.AddListener(OnAllTasksCompleted);
+        flowerController.FlowerDragStarted.AddListener(OnFlowerDragStarted);
+        flowerController.FlowerDropFailed.AddListener(OnFlowerDropFailed);
         flowerController.FlowerPlaced.AddListener(OnFlowerPlaced);
 
         subscribed = true;
@@ -679,6 +708,8 @@ public class FlowerEmotionGuideController : MonoBehaviour
         flowerController.TaskStarted.RemoveListener(OnTaskStarted);
         flowerController.TaskCompleted.RemoveListener(OnTaskCompleted);
         flowerController.AllTasksCompleted.RemoveListener(OnAllTasksCompleted);
+        flowerController.FlowerDragStarted.RemoveListener(OnFlowerDragStarted);
+        flowerController.FlowerDropFailed.RemoveListener(OnFlowerDropFailed);
         flowerController.FlowerPlaced.RemoveListener(OnFlowerPlaced);
 
         subscribed = false;
