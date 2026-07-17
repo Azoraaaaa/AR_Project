@@ -6,8 +6,13 @@ public class ARObjectClickManager : MonoBehaviour
 {
     private Camera arCamera;
 
+    [Header("Props")]
     public Image propsImage;
     public Sprite leafSprite;
+
+    [Header("Audio")]
+    public AudioSource audioSource;
+    public AudioClip collectSound;
 
 
     void Start()
@@ -29,16 +34,15 @@ public class ARObjectClickManager : MonoBehaviour
     {
         // PC测试
         if (Mouse.current != null &&
-           Mouse.current.leftButton.wasPressedThisFrame)
+            Mouse.current.leftButton.wasPressedThisFrame)
         {
             Debug.Log("🖱 Mouse Click");
             CheckClick(Mouse.current.position.ReadValue());
         }
 
-
         // 手机测试
         if (Touchscreen.current != null &&
-           Touchscreen.current.primaryTouch.press.wasPressedThisFrame)
+            Touchscreen.current.primaryTouch.press.wasPressedThisFrame)
         {
             Debug.Log("📱 Touch Click");
 
@@ -49,11 +53,9 @@ public class ARObjectClickManager : MonoBehaviour
     }
 
 
-
     void CheckClick(Vector2 position)
     {
         Debug.Log("Screen Position: " + position);
-
 
         Ray ray = arCamera.ScreenPointToRay(position);
 
@@ -64,21 +66,12 @@ public class ARObjectClickManager : MonoBehaviour
             2f
         );
 
-
         RaycastHit hit;
-
 
         if (Physics.Raycast(ray, out hit))
         {
-            Debug.Log(
-                "✅ Ray Hit: " + hit.collider.gameObject.name
-            );
-
-
-            Debug.Log(
-                "Tag: " + hit.collider.gameObject.tag
-            );
-
+            Debug.Log("✅ Ray Hit: " + hit.collider.gameObject.name);
+            Debug.Log("Tag: " + hit.collider.gameObject.tag);
 
             if (hit.collider.CompareTag("Leaf"))
             {
@@ -90,7 +83,6 @@ public class ARObjectClickManager : MonoBehaviour
             {
                 Debug.Log("❌ Not Leaf");
             }
-
         }
         else
         {
@@ -99,12 +91,17 @@ public class ARObjectClickManager : MonoBehaviour
     }
 
 
-
     void CollectLeaf(GameObject leaf)
     {
         Debug.Log("🎉 Leaf Collected");
 
+        // 播放收集音效
+        if (audioSource != null && collectSound != null)
+        {
+            audioSource.PlayOneShot(collectSound);
+        }
 
+        // 更新PropsBar
         if (propsImage != null)
         {
             propsImage.sprite = leafSprite;
@@ -117,7 +114,7 @@ public class ARObjectClickManager : MonoBehaviour
             Debug.Log("❌ PropsImage missing");
         }
 
-
+        // Leaf消失
         leaf.SetActive(false);
 
         Debug.Log("✅ Leaf Disabled");

@@ -1,4 +1,4 @@
-using UnityEngine;
+ï»¿using UnityEngine;
 using System.Collections;
 
 public class LifeCycleManager : MonoBehaviour
@@ -24,7 +24,7 @@ public class LifeCycleManager : MonoBehaviour
 
     [Header("Canvas")]
     public GameObject gameCanvas;
-    // ÕâÀï¶ÔÓ¦ Dialogue Manager ÀïµÄ dialoguePanel (StoryBG)
+    // è¿™é‡Œå¯¹åº” Dialogue Manager é‡Œçš„ dialoguePanel (StoryBG)
     public GameObject storyCanvas;
 
 
@@ -63,7 +63,7 @@ public class LifeCycleManager : MonoBehaviour
         if (currentStep == 5)
         {
             StartCoroutine(ShowObject(finalObject, finalAppearDelay));
-            Debug.Log("È«²¿Íê³É£¡");
+            Debug.Log("å…¨éƒ¨å®Œæˆï¼");
         }
     }
 
@@ -87,7 +87,7 @@ public class LifeCycleManager : MonoBehaviour
         {
             newObject.SetActive(true);
 
-            // Falling½×¶Î
+            // Fallingé˜¶æ®µ
             if (newObject == finalObject)
             {
                 for (int i = 0; i < newObject.transform.childCount; i++)
@@ -95,7 +95,7 @@ public class LifeCycleManager : MonoBehaviour
                     newObject.transform.GetChild(i).gameObject.SetActive(true);
                 }
 
-                // ¼¤»îµÚ¶ş½×¶Î¶Ô»°Á÷³Ì
+                // æ¿€æ´»ç¬¬äºŒé˜¶æ®µå¯¹è¯æµç¨‹
                 StartCoroutine(ShowStoryCanvasDelay());
             }
 
@@ -108,13 +108,13 @@ public class LifeCycleManager : MonoBehaviour
     {
         yield return new WaitForSeconds(2f);
 
-        // ¹Ø±Õ²Ù×÷½çÃæµÄ Canvas
+        // å…³é—­æ“ä½œç•Œé¢çš„ Canvas
         if (gameCanvas != null)
         {
             gameCanvas.SetActive(false);
         }
 
-        // ÖØĞÂ¿ªÆô¶Ô»°½çÃæµÄ Canvas
+        // é‡æ–°å¼€å¯å¯¹è¯ç•Œé¢çš„ Canvas
         if (storyCanvas != null)
         {
             storyCanvas.SetActive(true);
@@ -122,7 +122,7 @@ public class LifeCycleManager : MonoBehaviour
 
         yield return null;
 
-        // ÈÃ¶Ô»°¹ÜÀíÆ÷´Ó Element 5 ¼ÌĞø°´Ë³ĞòÍùºó²¥·Å
+        // è®©å¯¹è¯ç®¡ç†å™¨ä» Element 5 ç»§ç»­æŒ‰é¡ºåºå¾€åæ’­æ”¾
         if (dialogueManager != null)
         {
             dialogueManager.ResumeDialogue();
