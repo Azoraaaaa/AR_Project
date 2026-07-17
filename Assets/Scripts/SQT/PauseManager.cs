@@ -6,6 +6,12 @@ public class PauseManager : MonoBehaviour
     public GameObject pausePage;
 
 
+    [Header("Audio")]
+    public AudioSource audioSource;
+    public AudioClip pauseSound;
+    public AudioClip resumeSound;
+
+
     private bool isPaused = false;
 
 
@@ -29,6 +35,13 @@ public class PauseManager : MonoBehaviour
         isPaused = true;
 
 
+        // 播放暂停音效
+        if (audioSource != null && pauseSound != null)
+        {
+            audioSource.PlayOneShot(pauseSound);
+        }
+
+
         // 停止游戏时间
         Time.timeScale = 0;
 
@@ -49,11 +62,18 @@ public class PauseManager : MonoBehaviour
             return;
 
 
-        isPaused = false;
+        // 播放恢复音效
+        if (audioSource != null && resumeSound != null)
+        {
+            audioSource.PlayOneShot(resumeSound);
+        }
 
 
         // 恢复游戏时间
         Time.timeScale = 1;
+
+
+        isPaused = false;
 
 
         // 隐藏暂停页面

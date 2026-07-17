@@ -1906,7 +1906,19 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 8407822657464464340}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 7988882958143639794}
+        m_TargetAssemblyTypeName: PauseManager, Assembly-CSharp
+        m_MethodName: ResumeGame
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!1 &964016346897847802
 GameObject:
   m_ObjectHideFlags: 0
@@ -6059,8 +6071,8 @@ Transform:
   m_GameObject: {fileID: 2629078863290708739}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: 0.99236125, z: -0, w: -0.12336619}
-  m_LocalPosition: {x: -2.32, y: 2.41, z: -7.2665596}
-  m_LocalScale: {x: 2.483949, y: 2.483949, z: 2.483949}
+  m_LocalPosition: {x: -2.32, y: 2.41, z: -9.07}
+  m_LocalScale: {x: 3.962147, y: 3.962147, z: 3.962147}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 4986249965450007257}
@@ -7691,7 +7703,7 @@ Canvas:
   m_AdditionalShaderChannelsFlag: 25
   m_UpdateRectTransformForStandalone: 0
   m_SortingLayerID: 0
-  m_SortingOrder: 0
+  m_SortingOrder: 1
   m_TargetDisplay: 0
 --- !u!114 &5638886339594251606
 MonoBehaviour:
@@ -15896,6 +15908,7 @@ GameObject:
   - component: {fileID: 4114503463916570828}
   - component: {fileID: 7271652745990734374}
   - component: {fileID: 3607599392195846382}
+  - component: {fileID: 7988882958143639794}
   m_Layer: 0
   m_Name: GameManager
   m_TagString: Untagged
@@ -16016,6 +16029,22 @@ MonoBehaviour:
   leafSprite: {fileID: 21300000, guid: 2065d73f2c64c154d90d346212c86ec5, type: 3}
   audioSource: {fileID: 3084088605051973219}
   collectSound: {fileID: 8300000, guid: 1b327aadc5b89b0449b1639ce1b0138a, type: 3}
+--- !u!114 &7988882958143639794
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7048210998813311375}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f097bd1e738c4a14d9c05bbf0dd7b3c9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  pausePage: {fileID: 1248655283608350519}
+  audioSource: {fileID: 3084088605051973219}
+  pauseSound: {fileID: 8300000, guid: 126fc8d71f6667d418f4cce2d35776df, type: 3}
+  resumeSound: {fileID: 8300000, guid: 126fc8d71f6667d418f4cce2d35776df, type: 3}
 --- !u!1 &7192628142000065504
 GameObject:
   m_ObjectHideFlags: 0
@@ -17658,7 +17687,19 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 3369634912673446888}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 7988882958143639794}
+        m_TargetAssemblyTypeName: PauseManager, Assembly-CSharp
+        m_MethodName: PauseGame
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!1 &7759754436135701845
 GameObject:
   m_ObjectHideFlags: 0
