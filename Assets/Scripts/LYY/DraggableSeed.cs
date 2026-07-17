@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.EnhancedTouch;
 
 [RequireComponent(typeof(Collider))]
 public class DraggableSeed : MonoBehaviour
@@ -8,24 +9,17 @@ public class DraggableSeed : MonoBehaviour
     [Header("拖动设置")]
     [SerializeField] private Camera arCamera;
 
-    [Tooltip("拖动平面的参考物。建议拖入 Prefab 内的 ContentRoot")]
+    [Tooltip("建议拖入 Prefab 内的 ContentRoot")]
     [SerializeField] private Transform dragPlaneReference;
 
     [SerializeField] private float liftHeight = 0.01f;
 
-    [Tooltip("放置失败后是否回到原位")]
+    [Tooltip("放错位置后是否返回原位")]
     [SerializeField] private bool returnToStartPosition = true;
 
     [Header("目标花盆")]
     [Tooltip("拖入同一 Prefab 内的 PlantingTrigger")]
     [SerializeField] private PlantingZone targetPlantingZone;
-
-    [Header("拿起种子音效")]
-    [SerializeField] private AudioSource audioSource;
-    [SerializeField] private AudioClip pickUpSeedClip;
-
-    [Range(0f, 1f)]
-    [SerializeField] private float pickUpVolume = 1f;
 
     private Rigidbody seedRigidbody;
 
@@ -45,7 +39,7 @@ public class DraggableSeed : MonoBehaviour
         originalLocalPosition = transform.localPosition;
         originalLocalRotation = transform.localRotation;
 
-        // Prefab 中不要写死 Scene 的 AR Camera
+        // Prefab 不直接保存 Scene AR Camera 引用
         if (arCamera == null)
         {
             arCamera = Camera.main;
@@ -95,11 +89,12 @@ public class DraggableSeed : MonoBehaviour
     {
         if (arCamera == null)
         {
-            Debug.LogError("DraggableSeed: Cannot find AR Camera.");
+            Debug.LogError(
+                "DraggableSeed: Cannot find AR Camera."
+            );
             return;
         }
 
-        // 鼠标点在普通 Screen Space UI 上时，不拿起种子
         if (EventSystem.current != null &&
             Mouse.current != null &&
             EventSystem.current.IsPointerOverGameObject())
@@ -107,7 +102,8 @@ public class DraggableSeed : MonoBehaviour
             return;
         }
 
-        Ray ray = arCamera.ScreenPointToRay(screenPosition);
+        Ray ray =
+            arCamera.ScreenPointToRay(screenPosition);
 
         if (!Physics.Raycast(ray, out RaycastHit hit))
             return;
@@ -121,31 +117,16 @@ public class DraggableSeed : MonoBehaviour
 
         isDragging = true;
 
-        // 播放拿起种子的音效
-        if (audioSource != null && pickUpSeedClip != null)
-        {
-            audioSource.PlayOneShot(
-                pickUpSeedClip,
-                pickUpVolume
-            );
-        }
-
-        // 通知 UI：种子已经拿起来
+        // 拿起音效由不会消失的 PlantingZone 播放
         if (targetPlantingZone != null)
         {
             targetPlantingZone.OnSeedPickedUp();
         }
 
-        Vector3 planeNormal;
-
-        if (dragPlaneReference != null)
-        {
-            planeNormal = dragPlaneReference.up;
-        }
-        else
-        {
-            planeNormal = arCamera.transform.forward;
-        }
+        Vector3 planeNormal =
+            dragPlaneReference != null
+                ? dragPlaneReference.up
+                : arCamera.transform.forward;
 
         dragPlane = new Plane(
             planeNormal,
@@ -164,7 +145,8 @@ public class DraggableSeed : MonoBehaviour
         if (arCamera == null)
             return;
 
-        Ray ray = arCamera.ScreenPointToRay(screenPosition);
+        Ray ray =
+            arCamera.ScreenPointToRay(screenPosition);
 
         if (!dragPlane.Raycast(ray, out float enter))
             return;
@@ -195,7 +177,6 @@ public class DraggableSeed : MonoBehaviour
     {
         isDragging = false;
 
-        // 确保 Transform 与物理系统同步
         Physics.SyncTransforms();
 
         bool isInsideCorrectZone =
@@ -204,6 +185,11 @@ public class DraggableSeed : MonoBehaviour
 
         if (isInsideCorrectZone)
         {
+            /*
+             * PlantSeed 内会播放：
+             * 1. Grab 音效
+             * 2. Success 音效
+             */
             bool planted =
                 currentPlantingZone.PlantSeed(gameObject);
 
@@ -211,13 +197,17 @@ public class DraggableSeed : MonoBehaviour
                 return;
         }
 
-        // 没放进花盆，返回原位
+        // 没有放到正确位置，返回原位
         if (returnToStartPosition)
         {
-            transform.localPosition = originalLocalPosition;
-            transform.localRotation = originalLocalRotation;
+            transform.localPosition =
+                originalLocalPosition;
+
+            transform.localRotation =
+                originalLocalRotation;
         }
 
+        // 返回原位，同时播放放下的 Grab 音效
         if (targetPlantingZone != null)
         {
             targetPlantingZone.OnSeedReturned();
@@ -251,7 +241,6 @@ public class DraggableSeed : MonoBehaviour
     {
         position = Vector2.zero;
 
-        // Android / 手机触屏
         if (Touchscreen.current != null)
         {
             var touch =
@@ -264,7 +253,6 @@ public class DraggableSeed : MonoBehaviour
             }
         }
 
-        // Unity Editor 鼠标
         if (Mouse.current != null &&
             Mouse.current.leftButton.wasPressedThisFrame)
         {
@@ -322,9 +310,7 @@ public class DraggableSeed : MonoBehaviour
         if (Mouse.current != null &&
             Mouse.current.leftButton.wasReleasedThisFrame)
         {
-            position =
-                Mouse.current.position.ReadValue();
-
+            position = Mouse.current.position.ReadValue();
             return true;
         }
 

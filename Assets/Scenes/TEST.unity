@@ -280,6 +280,10 @@ MonoBehaviour:
     ContentPrefab: {fileID: 7210203359792740281, guid: bee51470a6e7df74ab2d47a2c6e93b8c,
       type: 3}
     NarrationClip: {fileID: 0}
+  - Metadata: zn1
+    ContentPrefab: {fileID: 8502858082883477796, guid: 12bc6b8a0053c69488d63114ff9052d2,
+      type: 3}
+    NarrationClip: {fileID: 0}
   NarrationAudioSource: {fileID: 687446935}
 --- !u!114 &453680370
 MonoBehaviour:
@@ -506,6 +510,7 @@ GameObject:
   - component: {fileID: 1032663259}
   - component: {fileID: 1032663258}
   - component: {fileID: 1032663257}
+  - component: {fileID: 1032663262}
   m_Layer: 0
   m_Name: ARCamera
   m_TagString: MainCamera
@@ -615,6 +620,22 @@ Transform:
   - {fileID: 1252299013}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1032663262
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1032663256}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c49b4cc203aa6414fae5c798d1d0e7d6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_EventMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_MaxRayIntersections: 0
 --- !u!1 &1252299009
 GameObject:
   m_ObjectHideFlags: 0

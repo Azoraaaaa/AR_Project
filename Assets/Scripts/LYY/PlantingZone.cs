@@ -1,10 +1,14 @@
+using System.Collections;
 using TMPro;
 using UnityEngine;
 
 public class PlantingZone : MonoBehaviour
 {
+    [Header("Page Flow")]
+    [SerializeField] private FlowController1 flowController;
+
     [Header("种子模型")]
-    [Tooltip("花盆里预先摆放好的种子，开始时隐藏")]
+    [Tooltip("花盆里预先摆好的种子，游戏开始时隐藏")]
     [SerializeField] private GameObject plantedSeedModel;
 
     [Header("提示文字 UI")]
@@ -22,24 +26,33 @@ public class PlantingZone : MonoBehaviour
         "The Memory Seed is ready";
 
     [Header("引导 UI")]
-    [Tooltip("指向外部种子的手指箭头")]
+    [Tooltip("拿起种子前，指向种子的手指图片")]
     [SerializeField] private GameObject fingerHint;
 
-    [Tooltip("花盆里的虚线圆圈")]
+    [Tooltip("花盆里的虚线圆圈图片")]
     [SerializeField] private GameObject dashedCircleHint;
 
-    [Tooltip("花盆里指向放置位置的箭头")]
+    [Tooltip("指向花盆放置位置的箭头图片")]
     [SerializeField] private GameObject potArrowHint;
 
-    [Header("种子高亮")]
-    [Tooltip("种子外圈发光对象，例如 Glow Sprite 或稍大的发光模型")]
-    [SerializeField] private GameObject seedGlowObject;
+    [Header("Sound Effects")]
+    [Tooltip("必须放在不会被隐藏的对象上，例如 PlantingTrigger")]
+    [SerializeField] private AudioSource sfxAudioSource;
 
-    [Header("放置音效")]
-    [SerializeField] private AudioSource audioSource;
-    [SerializeField] private AudioClip placeSeedClip;
+    [Tooltip("拿起和放下共用的音效")]
+    [SerializeField] private AudioClip grabClip;
+
+    [Tooltip("正确放入花盆后的成功音效")]
+    [SerializeField] private AudioClip successClip;
+
     [Range(0f, 1f)]
-    [SerializeField] private float placeVolume = 1f;
+    [SerializeField] private float grabVolume = 1f;
+
+    [Range(0f, 1f)]
+    [SerializeField] private float successVolume = 1f;
+
+    [Tooltip("Grab 音效开始后，延迟多久播放 Success")]
+    [SerializeField] private float successDelay = 0.12f;
 
     private bool hasPlanted;
 
@@ -52,27 +65,30 @@ public class PlantingZone : MonoBehaviour
         if (plantedSeedModel != null)
             plantedSeedModel.SetActive(false);
 
-        SetPrompt(beforePlantText);
+        if (sfxAudioSource == null)
+            sfxAudioSource = GetComponent<AudioSource>();
 
-        SetObjectActive(fingerHint, true);
-        SetObjectActive(dashedCircleHint, true);
-        SetObjectActive(potArrowHint, true);
-        SetObjectActive(seedGlowObject, true);
+        /*
+         * 不要在这里直接显示交互提示，
+         * 由 Page10DialogueController 在对白结束后开启。
+         */
+        PrepareForDialogue();
     }
 
     /// <summary>
-    /// 玩家成功点中并拿起种子时调用。
+    /// 玩家开始拿起种子。
     /// </summary>
     public void OnSeedPickedUp()
     {
         if (hasPlanted)
             return;
 
-        // 拿起来之后，不再需要手指提示和发光提示
-        SetObjectActive(fingerHint, false);
-        SetObjectActive(seedGlowObject, false);
+        PlayGrabSound();
 
-        // 花盆位置提示继续保留
+        // 玩家已经知道种子在哪里，隐藏手指提示
+        SetObjectActive(fingerHint, false);
+
+        // 花盆里的目标提示继续显示
         SetObjectActive(dashedCircleHint, true);
         SetObjectActive(potArrowHint, true);
 
@@ -80,15 +96,18 @@ public class PlantingZone : MonoBehaviour
     }
 
     /// <summary>
-    /// 玩家没有放进花盆，种子返回原位时调用。
+    /// 玩家在错误位置放下种子，种子返回原位。
     /// </summary>
     public void OnSeedReturned()
     {
         if (hasPlanted)
             return;
 
+        // 放下也播放同一个 Grab 音效
+        PlayGrabSound();
+
+        // 返回原位后，重新显示手指提示
         SetObjectActive(fingerHint, true);
-        SetObjectActive(seedGlowObject, true);
 
         SetObjectActive(dashedCircleHint, true);
         SetObjectActive(potArrowHint, true);
@@ -97,7 +116,7 @@ public class PlantingZone : MonoBehaviour
     }
 
     /// <summary>
-    /// 种子在 Trigger 中松手时调用。
+    /// 玩家在正确 Trigger 中放下种子。
     /// </summary>
     public bool PlantSeed(GameObject draggedSeed)
     {
@@ -106,47 +125,119 @@ public class PlantingZone : MonoBehaviour
 
         hasPlanted = true;
 
-        // 播放放下种子的音效
-        if (audioSource != null && placeSeedClip != null)
-        {
-            audioSource.PlayOneShot(placeSeedClip, placeVolume);
-        }
+        /*
+         * 音效必须先由 PlantingZone 播放。
+         * PlantingZone 不会被隐藏，所以 draggedSeed 消失后音效仍然继续。
+         */
+        PlayGrabSound();
+        StartCoroutine(PlaySuccessAfterDelay());
 
-        // 显示花盆里预先放好的种子
+        // 显示花盆里预先摆好的固定种子
         if (plantedSeedModel != null)
         {
             plantedSeedModel.SetActive(true);
         }
 
-        // 隐藏原本被拖动的种子
+        // 隐藏原本可以拖动的种子
         if (draggedSeed != null)
         {
             draggedSeed.SetActive(false);
         }
 
-        // 放置完成，隐藏所有引导图
+        // 成功后隐藏所有引导图
         SetObjectActive(fingerHint, false);
-        SetObjectActive(seedGlowObject, false);
         SetObjectActive(dashedCircleHint, false);
         SetObjectActive(potArrowHint, false);
 
-        SetPrompt(afterPlantText);
+        if (promptPanel != null)
+            promptPanel.SetActive(false);
+
+        if (flowController != null)
+        {
+            flowController.OnSeedPlanted();
+        }
+        else
+        {
+            Debug.LogError(
+                "PlantingZone: Page10FlowController is not assigned."
+            );
+        }
 
         return true;
+    }
+
+    public void PlayGrabSound()
+    {
+        if (sfxAudioSource != null && grabClip != null)
+        {
+            sfxAudioSource.PlayOneShot(grabClip, grabVolume);
+        }
+    }
+
+    private IEnumerator PlaySuccessAfterDelay()
+    {
+        if (successDelay > 0f)
+        {
+            yield return new WaitForSeconds(successDelay);
+        }
+
+        if (sfxAudioSource != null && successClip != null)
+        {
+            sfxAudioSource.PlayOneShot(
+                successClip,
+                successVolume
+            );
+        }
     }
 
     private void SetPrompt(string message)
     {
         if (promptPanel != null)
+        {
             promptPanel.SetActive(true);
+        }
 
         if (promptText != null)
+        {
             promptText.text = message;
+        }
     }
 
     private void SetObjectActive(GameObject target, bool active)
     {
         if (target != null)
+        {
             target.SetActive(active);
+        }
+    }
+    public void PrepareForDialogue()
+    {
+        hasPlanted = false;
+
+        if (plantedSeedModel != null)
+            plantedSeedModel.SetActive(false);
+
+        // 故事对白期间不显示种植提示
+        if (promptPanel != null)
+            promptPanel.SetActive(false);
+
+        SetObjectActive(fingerHint, false);
+        SetObjectActive(dashedCircleHint, false);
+        SetObjectActive(potArrowHint, false);
+    }
+
+    public void BeginPlantingInteraction()
+    {
+        if (hasPlanted)
+            return;
+
+        SetPrompt(beforePlantText);
+
+        // 指向种子的手指
+        SetObjectActive(fingerHint, true);
+
+        // 指示花盆目标位置
+        SetObjectActive(dashedCircleHint, true);
+        SetObjectActive(potArrowHint, true);
     }
 }
