@@ -107,6 +107,7 @@ public class FlowerEmotionGuideController : MonoBehaviour
     [SerializeField] private AudioClip showHintClip;
     [SerializeField] private AudioClip hideHintClip;
     [SerializeField] private AudioClip flowerTouchedClip;
+    [SerializeField] private AudioClip flowerDragStartedClip;
     [SerializeField] private AudioClip orbSelectedClip;
     [SerializeField] private AudioClip taskCompletedClip;
     [SerializeField] private AudioClip allOrbsCompletedClip;
@@ -261,6 +262,7 @@ public class FlowerEmotionGuideController : MonoBehaviour
     private void OnFlowerDragStarted()
     {
         SetObjectActive(fingerHint, false);
+        PlayOneShot(flowerDragStartedClip);
     }
 
     private void OnFlowerDropFailed()
@@ -454,10 +456,11 @@ public class FlowerEmotionGuideController : MonoBehaviour
         waitingForFinalFlowerClick = false;
         HideAllHints(false);
 
+        GameObject collectedFlower = GetCollectedFlowerObject();
         PlayOneShot(finalFlowerClickClip);
 
         if (hideFlowerAfterFinalClick)
-            SetObjectActive(GetCollectedFlowerObject(), false);
+            SetObjectActive(collectedFlower, false);
 
         SetObjectActive(propsBarBeforeImage, false);
         SetObjectActive(propsBarAfterImage, true);
