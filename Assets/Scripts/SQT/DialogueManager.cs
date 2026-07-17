@@ -15,11 +15,9 @@ public class DialogueManager : MonoBehaviour
     [Header("Typing")]
     public float typingSpeed = 0.05f;
 
-
     [Header("After Dialogue")]
     public GameObject[] objectsToHide;
     public GameObject gameUI;
-
 
     void Start()
     {
@@ -33,22 +31,17 @@ public class DialogueManager : MonoBehaviour
         StartCoroutine(StartDialogue());
     }
 
-
     IEnumerator StartDialogue()
     {
         dialoguePanel.SetActive(true);
-
 
         for (int i = 0; i < dialogueTexts.Length; i++)
         {
             yield return StartCoroutine(PlayLine(i));
         }
 
-
         EndDialogue();
     }
-
-
 
     IEnumerator PlayLine(int index)
     {
@@ -56,31 +49,26 @@ public class DialogueManager : MonoBehaviour
 
         currentText.gameObject.SetActive(true);
 
-
         // 保存原文字
         string content = currentText.text;
-
 
         // 清空准备打字
         currentText.text = "";
 
-
         // 同时播放音频
         if (dialogueAudios.Length > index &&
-           dialogueAudios[index] != null)
+            dialogueAudios[index] != null)
         {
             audioSource.clip = dialogueAudios[index];
             audioSource.Play();
         }
 
-
         // 开始打字
         yield return StartCoroutine(TypeText(currentText, content));
 
-
         // 有音频
         if (dialogueAudios.Length > index &&
-           dialogueAudios[index] != null)
+            dialogueAudios[index] != null)
         {
             // 等待声音播放结束
             while (audioSource.isPlaying)
@@ -94,11 +82,8 @@ public class DialogueManager : MonoBehaviour
             yield return new WaitForSeconds(2f);
         }
 
-
         currentText.gameObject.SetActive(false);
     }
-
-
 
     IEnumerator TypeText(TMP_Text text, string content)
     {
@@ -110,18 +95,14 @@ public class DialogueManager : MonoBehaviour
         }
     }
 
-
-
     void EndDialogue()
     {
         dialoguePanel.SetActive(false);
-
 
         foreach (GameObject obj in objectsToHide)
         {
             obj.SetActive(false);
         }
-
 
         gameUI.SetActive(true);
     }
