@@ -346,11 +346,36 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 705953402899759675, guid: 51f93eaebde638544b0ed1680baf489d,
+        type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -2.8
+      objectReference: {fileID: 0}
+    - target: {fileID: 705953402899759675, guid: 51f93eaebde638544b0ed1680baf489d,
+        type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 3.3
+      objectReference: {fileID: 0}
+    - target: {fileID: 705953402899759675, guid: 51f93eaebde638544b0ed1680baf489d,
+        type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 2.43
+      objectReference: {fileID: 0}
     - target: {fileID: 2266076682347022918, guid: 51f93eaebde638544b0ed1680baf489d,
         type: 3}
       propertyPath: m_Name
       value: page_lwy_2
       objectReference: {fileID: 0}
+    - target: {fileID: 2266076682347022918, guid: 51f93eaebde638544b0ed1680baf489d,
+        type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 3058720595853883423, guid: 51f93eaebde638544b0ed1680baf489d,
+        type: 3}
+      propertyPath: netDragStartClip
+      value: 
+      objectReference: {fileID: 8300000, guid: 1b327aadc5b89b0449b1639ce1b0138a, type: 3}
     - target: {fileID: 7398018631030749632, guid: 51f93eaebde638544b0ed1680baf489d,
         type: 3}
       propertyPath: m_LocalPosition.x

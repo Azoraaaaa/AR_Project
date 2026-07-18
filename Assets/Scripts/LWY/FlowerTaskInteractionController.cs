@@ -1046,23 +1046,6 @@ public class FlowerTaskInteractionController : MonoBehaviour
         LogDebug("Auto-created BoxCollider on " + target.name);
     }
 
-    void OnGUI()
-    {
-        if (!ShowDebugOverlay)
-            return;
-
-        string cameraName = InteractionCamera != null ? InteractionCamera.name : "None";
-        string flowerName = FlowerObject != null ? FlowerObject.name : "None";
-        string debugText =
-            "Flower Interaction Debug\n" +
-            "State: " + mState + "\n" +
-            "Camera: " + cameraName + "\n" +
-            "Flower: " + flowerName + "\n" +
-            "Last: " + mLastDebugMessage;
-
-        GUI.Box(new Rect(20, 20, 430, 120), debugText);
-    }
-
     bool IsTransformUnderRoot(Transform child, Transform root)
     {
         if (child == null || root == null)
