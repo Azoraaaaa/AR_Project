@@ -23431,19 +23431,19 @@ MonoBehaviour:
   timeBetweenLines: 0.3
   openingLines:
   - text: You brought the Memory Seed home.
-    voiceClip: {fileID: 8300000, guid: 98b147024f1199640b49110a1bf68c33, type: 3}
+    voiceClip: {fileID: 8300000, guid: 5c0a89fdb5712cd4d9075a470fa32f22, type: 3}
   - text: Day by day, the little sprout continued to grow.
-    voiceClip: {fileID: 8300000, guid: 98b147024f1199640b49110a1bf68c33, type: 3}
+    voiceClip: {fileID: 8300000, guid: df7e70826e8a51845b0431596a46a437, type: 3}
   middleLines:
   - text: You still missed Lumi sometimes.
-    voiceClip: {fileID: 8300000, guid: d43b09275255bff4ea59c742d6313388, type: 3}
+    voiceClip: {fileID: 8300000, guid: 28576ca73dcca984baebd56d73bc8738, type: 3}
   - text: And it was okay to feel sad.
-    voiceClip: {fileID: 8300000, guid: d43b09275255bff4ea59c742d6313388, type: 3}
+    voiceClip: {fileID: 8300000, guid: 8e97f8dfa5812014d9e723664112e920, type: 3}
   finalLines:
   - text: The flower reminded you that love and memories do not disappear.
-    voiceClip: {fileID: 8300000, guid: d43b09275255bff4ea59c742d6313388, type: 3}
+    voiceClip: {fileID: 8300000, guid: e0ffc6bcc2558724bb07d4066ffc0112, type: 3}
   - text: You could remember Lumi and keep growing.
-    voiceClip: {fileID: 8300000, guid: d43b09275255bff4ea59c742d6313388, type: 3}
+    voiceClip: {fileID: 8300000, guid: 767bc498268be5548bb3866e9d13553d, type: 3}
   sproutModel: {fileID: 8339471582375685910}
   sproutPlusModel: {fileID: 9129514251336948653}
   flowerModel: {fileID: 2704821681330995068}
