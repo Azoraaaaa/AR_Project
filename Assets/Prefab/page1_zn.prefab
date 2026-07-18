@@ -5417,7 +5417,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 585469783410291632}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: -2.47, z: -3.46}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
@@ -30525,7 +30525,6 @@ MonoBehaviour:
   displayPauseDuration: 0.8
   seedCollectClip: {fileID: 8300000, guid: daf617b242c818549b5f45e36c4a34d0, type: 3}
   seedCollectDuration: 0.4
-  nextPageCanvasDelay: 2.5
   butterflyObject: {fileID: 4534407907255462086}
   butterflyAnimator: {fileID: 4047378534880627598}
   butterflyFlyState: Base Layer.Move
@@ -47802,7 +47801,7 @@ Light:
   m_Enabled: 1
   serializedVersion: 11
   m_Type: 1
-  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_Color: {r: 1, g: 0.75010353, b: 0.37421376, a: 1}
   m_Intensity: 1
   m_Range: 10
   m_SpotAngle: 30

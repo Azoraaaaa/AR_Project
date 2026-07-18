@@ -1637,6 +1637,11 @@ public class FlowController2 : MonoBehaviour
         StopLightPointParticles();
 
         lightPointRoot.SetActive(false);
+
+        if (SimpleCloudRecoEventHandler.Instance != null)
+        {
+            SimpleCloudRecoEventHandler.Instance.ShowNextPageCanvas();
+        }
     }
     private void StopLightPointParticles()
     {

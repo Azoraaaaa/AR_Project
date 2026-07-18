@@ -87,7 +87,7 @@ public class FlowController1 : MonoBehaviour
         );
 
         ShowHint(
-            "Place the three gifts around the Memory Seed"
+            "Place the three items around the Memory Seed"
         );
 
         yield return new WaitForSecondsRealtime(
@@ -347,11 +347,11 @@ public class FlowController1 : MonoBehaviour
         storyText.maxVisibleCharacters =
             int.MaxValue;
 
-        /*
-         * 不隐藏 Story Panel。
-         * 最终文本和蝴蝶 UI 永久保留，
-         * 代表 Page 10 结束。
-         */
+        if (SimpleCloudRecoEventHandler.Instance != null)
+        {
+            SimpleCloudRecoEventHandler.Instance.ShowNextPageCanvas();
+        }
+
         storyFeedbackRoutine = null;
     }
 

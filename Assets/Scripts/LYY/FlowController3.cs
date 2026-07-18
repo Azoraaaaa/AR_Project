@@ -326,7 +326,10 @@ public class FlowController3 : MonoBehaviour
             );
         }
 
-        onPageCompleted?.Invoke();
+        if (SimpleCloudRecoEventHandler.Instance != null)
+        {
+            SimpleCloudRecoEventHandler.Instance.ShowNextPageCanvas();
+        }
     }
     private void HideStory()
     {
