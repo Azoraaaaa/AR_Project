@@ -68,6 +68,10 @@ public class FlowerTaskInteractionController : MonoBehaviour
     public Transform DropSnapPoint;
     public float DropAcceptDistance = 0.05f;
     public bool SnapToDropPoint = true;
+    [Tooltip("Also accept drops by measuring the flower against the drop target on the drag plane. This is more reliable on mobile AR than pure 3D collider depth.")]
+    public bool UsePlanarDropCheck = true;
+    [Tooltip("Accepted distance on the drag plane. If this is 0 or below, DropAcceptDistance is used.")]
+    public float PlanarDropAcceptDistance = 0.08f;
     [Tooltip("Optional plane transform for final flower dragging. The flower moves on this plane; the transform's up axis is the plane normal.")]
     public Transform FlowerDragPlaneReference;
     [Tooltip("When enabled, the dragged flower is projected onto FlowerDragPlaneReference instead of keeping its original depth offset.")]
@@ -566,15 +570,42 @@ public class FlowerTaskInteractionController : MonoBehaviour
 
     bool IsFlowerInDropZone()
     {
-        if (FlowerObject == null || DropZoneCollider == null)
+        if (FlowerObject == null)
             return false;
 
         Vector3 flowerPosition = FlowerObject.transform.position;
-        if (DropZoneCollider.bounds.Contains(flowerPosition))
-            return true;
+        if (DropZoneCollider != null)
+        {
+            if (DropZoneCollider.bounds.Contains(flowerPosition))
+                return true;
 
-        Vector3 closestPoint = DropZoneCollider.ClosestPoint(flowerPosition);
-        return Vector3.Distance(flowerPosition, closestPoint) <= DropAcceptDistance;
+            Vector3 closestPoint = DropZoneCollider.ClosestPoint(flowerPosition);
+            if (Vector3.Distance(flowerPosition, closestPoint) <= DropAcceptDistance)
+                return true;
+        }
+
+        return UsePlanarDropCheck && IsFlowerNearDropTargetOnDragPlane(flowerPosition);
+    }
+
+    bool IsFlowerNearDropTargetOnDragPlane(Vector3 flowerPosition)
+    {
+        Transform dropTarget = DropSnapPoint != null ? DropSnapPoint : (DropZoneCollider != null ? DropZoneCollider.transform : null);
+        if (dropTarget == null)
+            return false;
+
+        Vector3 normal = FlowerDragPlaneReference != null ? FlowerDragPlaneReference.up : dropTarget.up;
+        if (normal.sqrMagnitude <= 0.0001f)
+            normal = InteractionCamera != null ? -InteractionCamera.transform.forward : Vector3.up;
+
+        normal.Normalize();
+
+        Vector3 targetPosition = DropSnapPoint != null ? DropSnapPoint.position : DropZoneCollider.bounds.center;
+        float acceptDistance = PlanarDropAcceptDistance > 0f ? PlanarDropAcceptDistance : DropAcceptDistance;
+        float planarDistance = Vector3.ProjectOnPlane(flowerPosition - targetPosition, normal).magnitude;
+        bool accepted = planarDistance <= acceptDistance;
+
+        LogDebug("Planar drop check. Distance=" + planarDistance.ToString("F4") + ", Accept=" + acceptDistance.ToString("F4") + ", Accepted=" + accepted);
+        return accepted;
     }
 
     IEnumerator PlayCompletedOrbDissolveRoutine(TaskStep task)
@@ -739,14 +770,16 @@ public class FlowerTaskInteractionController : MonoBehaviour
         pointer = new PointerInput();
 
 #if ENABLE_INPUT_SYSTEM
-        if (Touchscreen.current != null && Touchscreen.current.primaryTouch.press.isPressed)
+        if (Touchscreen.current != null)
         {
             pointer.Position = Touchscreen.current.primaryTouch.position.ReadValue();
             pointer.PointerId = 0;
             pointer.Down = Touchscreen.current.primaryTouch.press.wasPressedThisFrame;
             pointer.Held = Touchscreen.current.primaryTouch.press.isPressed;
             pointer.Up = Touchscreen.current.primaryTouch.press.wasReleasedThisFrame;
-            return pointer.Down || pointer.Held || pointer.Up;
+
+            if (pointer.Down || pointer.Held || pointer.Up)
+                return true;
         }
 
         if (Mouse.current != null)
