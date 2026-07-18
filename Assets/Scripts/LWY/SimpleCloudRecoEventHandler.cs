@@ -247,12 +247,16 @@ public class SimpleCloudRecoEventHandler : MonoBehaviour
 
     void ClearCurrentPage()
     {
+        Debug.Log("Current Page Content = " + mCurrentPageContent);
+
         if (mCurrentPageContent != null)
         {
+            Debug.Log("Destroy : " + mCurrentPageContent.name);
+
             Destroy(mCurrentPageContent);
+
             mCurrentPageContent = null;
         }
-
         if (NarrationAudioSource != null)
         {
             NarrationAudioSource.Stop();

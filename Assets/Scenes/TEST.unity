@@ -152,7 +152,7 @@ MonoBehaviour:
   ImageTargetTemplate: {fileID: 1252299012}
   Pages:
   - Metadata: page_00
-    ContentPrefab: {fileID: 509915511597063389, guid: ab441773e317cb24c920318efcf3c922,
+    ContentPrefab: {fileID: 2266076682347022918, guid: 51f93eaebde638544b0ed1680baf489d,
       type: 3}
     NarrationClip: {fileID: 0}
   - Metadata: abcd

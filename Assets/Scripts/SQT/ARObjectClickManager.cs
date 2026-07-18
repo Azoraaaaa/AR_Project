@@ -6,13 +6,16 @@ public class ARObjectClickManager : MonoBehaviour
 {
     private Camera arCamera;
 
+
     [Header("Props")]
     public Image propsImage;
     public Sprite leafSprite;
 
+
     [Header("Audio")]
     public AudioSource audioSource;
     public AudioClip collectSound;
+
 
 
     void Start()
@@ -30,6 +33,9 @@ public class ARObjectClickManager : MonoBehaviour
     }
 
 
+
+
+
     void Update()
     {
         // PC测试
@@ -37,14 +43,20 @@ public class ARObjectClickManager : MonoBehaviour
             Mouse.current.leftButton.wasPressedThisFrame)
         {
             Debug.Log("🖱 Mouse Click");
-            CheckClick(Mouse.current.position.ReadValue());
+
+            CheckClick(
+                Mouse.current.position.ReadValue()
+            );
         }
+
+
 
         // 手机测试
         if (Touchscreen.current != null &&
             Touchscreen.current.primaryTouch.press.wasPressedThisFrame)
         {
             Debug.Log("📱 Touch Click");
+
 
             CheckClick(
                 Touchscreen.current.primaryTouch.position.ReadValue()
@@ -53,11 +65,21 @@ public class ARObjectClickManager : MonoBehaviour
     }
 
 
+
+
+
+
+
     void CheckClick(Vector2 position)
     {
         Debug.Log("Screen Position: " + position);
 
-        Ray ray = arCamera.ScreenPointToRay(position);
+
+
+        Ray ray =
+            arCamera.ScreenPointToRay(position);
+
+
 
         Debug.DrawRay(
             ray.origin,
@@ -66,18 +88,29 @@ public class ARObjectClickManager : MonoBehaviour
             2f
         );
 
+
+
         RaycastHit hit;
+
+
 
         if (Physics.Raycast(ray, out hit))
         {
-            Debug.Log("✅ Ray Hit: " + hit.collider.gameObject.name);
-            Debug.Log("Tag: " + hit.collider.gameObject.tag);
+            Debug.Log(
+                "✅ Ray Hit: "
+                + hit.collider.gameObject.name
+            );
+
+
 
             if (hit.collider.CompareTag("Leaf"))
             {
                 Debug.Log("🍃 Leaf detected");
 
-                CollectLeaf(hit.collider.gameObject);
+
+                CollectLeaf(
+                    hit.collider.gameObject
+                );
             }
             else
             {
@@ -91,32 +124,82 @@ public class ARObjectClickManager : MonoBehaviour
     }
 
 
+
+
+
+
+
+
     void CollectLeaf(GameObject leaf)
     {
         Debug.Log("🎉 Leaf Collected");
 
+
+
         // 播放收集音效
-        if (audioSource != null && collectSound != null)
+        if (audioSource != null &&
+           collectSound != null)
         {
-            audioSource.PlayOneShot(collectSound);
+            audioSource.PlayOneShot(
+                collectSound
+            );
         }
+
+
+
+
 
         // 更新PropsBar
         if (propsImage != null)
         {
-            propsImage.sprite = leafSprite;
-            propsImage.color = Color.white;
+            propsImage.sprite =
+                leafSprite;
 
-            Debug.Log("✅ PropsBar Updated");
+
+            propsImage.color =
+                Color.white;
+
+
+            Debug.Log(
+                "✅ PropsBar Updated"
+            );
         }
         else
         {
-            Debug.Log("❌ PropsImage missing");
+            Debug.Log(
+                "❌ PropsImage missing"
+            );
         }
+
 
         // Leaf消失
         leaf.SetActive(false);
 
-        Debug.Log("✅ Leaf Disabled");
+
+        Debug.Log(
+            "✅ Leaf Disabled"
+        );
+
+
+
+        // ===============================
+        // 进入下一页 Canvas
+        // ===============================
+
+        if (SimpleCloudRecoEventHandler.Instance != null)
+        {
+            SimpleCloudRecoEventHandler.Instance
+                .ShowNextPageCanvas();
+
+            Debug.Log(
+                "➡️ Next Page Canvas Shown"
+            );
+        }
+        else
+        {
+            Debug.LogWarning(
+                "❌ SimpleCloudRecoEventHandler Instance missing"
+            );
+        }
     }
 }
