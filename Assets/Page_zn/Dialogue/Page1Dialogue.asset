@@ -15,36 +15,71 @@ MonoBehaviour:
   introLines:
   - text: Lumi has passed away, but the love you shared with her still lives in this
       room.
+    voiceClip: {fileID: 8300000, guid: ace16cdd6f05abe4f9516d6c620745e2, type: 3}
     holdAfter: 3
   - text: Her favourite things still hold small pieces of the memories you made together.
+    voiceClip: {fileID: 8300000, guid: 8f2a333ee7260e342926f930e1aca356, type: 3}
     holdAfter: 3
   - text: Begin with Lumi's favourite ball. Tap the object marked by her paw print.
+    voiceClip: {fileID: 8300000, guid: acd89d2c667972245a31cfbd22620bda, type: 3}
     holdAfter: 0
-  ballMemoryHint: This was Lumi's favourite ball. She would run in happy circles
-    whenever you played together.
-  bedMemoryHint: This was Lumi's favourite place to rest. Here, she always felt warm
-    and safe.
-  collarMemoryHint: The sound of this collar meant another walk. Lumi would wait
-    excitedly beside the door.
-  foodMemoryHint: Lumi always knew when it was mealtime. Even the little sound of
-    her bowl became part of home.
-  allMemoriesCompletedHint: The memories gently settle back into the room. Then,
-    a soft light begins to glow above Lumi's bed.
-  seedRevealHint: A tiny seed has appeared. Could this be something Lumi left behind?
-    Tap the glowing seed.
-  seedFirstTapHint: The seed feels warm in your hand. A faint flutter can be heard
-    near the window...
+  ballMemoryHint:
+    text: This was Lumi's favourite ball. She would run in happy circles whenever
+      you played together.
+    voiceClip: {fileID: 8300000, guid: 1d05db8e5968a68419cdca7dcc0533cf, type: 3}
+    holdAfter: 0
+  bedMemoryHint:
+    text: This was Lumi's favourite place to rest. Here, she always felt warm and
+      safe.
+    voiceClip: {fileID: 8300000, guid: cabc255593f22c2429e95d7f59410a0b, type: 3}
+    holdAfter: 0
+  collarMemoryHint:
+    text: The sound of this collar meant another walk. Lumi would wait excitedly
+      beside the door.
+    voiceClip: {fileID: 8300000, guid: 84d9b44d59b0e614e98f0ce5a6330e4e, type: 3}
+    holdAfter: 0
+  foodMemoryHint:
+    text: Lumi always knew when it was mealtime. Even the little sound of her bowl
+      became part of home.
+    voiceClip: {fileID: 8300000, guid: 17cdb2e34bf412748aa429d331791721, type: 3}
+    holdAfter: 0
+  allMemoriesCompletedHint:
+    text: The memories gently settle back into the room. Then, a soft light begins
+      to glow above Lumi's bed.
+    voiceClip: {fileID: 8300000, guid: 6d1a1c9271f80b94fbd033bc8bba204a, type: 3}
+    holdAfter: 2
+  seedRevealHint:
+    text: A tiny seed has appeared. Could this be something Lumi left behind? Tap
+      the glowing seed.
+    voiceClip: {fileID: 0}
+    holdAfter: 0
+  seedFirstTapHint:
+    text: The seed feels warm in your hand. A faint flutter can be heard near the
+      window...
+    voiceClip: {fileID: 0}
+    holdAfter: 0
   butterflyLines:
   - text: That is a Memory Seed.
+    voiceClip: {fileID: 8300000, guid: fb183d9c6cd877f4bb3c32e989e6211b, type: 3}
     holdAfter: 2.5
   - text: It was formed from the love and memories Lumi left behind.
+    voiceClip: {fileID: 8300000, guid: 5e59bca0535c46049a20cacaf251d7e7, type: 3}
     holdAfter: 2.5
   - text: To help it bloom, you must carry it to the Memory Garden.
+    voiceClip: {fileID: 8300000, guid: b2c0d55b8c1863843bcaebd3edba5a89, type: 3}
     holdAfter: 2.5
   - text: The garden gate is locked, but Lumi's paw prints will guide you to the
       key.
+    voiceClip: {fileID: 8300000, guid: fcba76778277a6441adf8b037c8db314, type: 3}
     holdAfter: 2.5
-  - text: Keep the seed safe. We will meet again on the next page.
+  - text: Keep the seed safe.
+    voiceClip: {fileID: 8300000, guid: 22d2a2ba162f53846aece7133db27100, type: 3}
     holdAfter: 1.5
-  collectSeedHint: Tap the Memory Seed once more to keep it safe.
-  pageCompletedHint: The Memory Seed is safe. Let's find the Memory Garden.
+  collectSeedHint:
+    text: Tap the Memory Seed once more to keep it safe.
+    voiceClip: {fileID: 0}
+    holdAfter: 0
+  pageCompletedHint:
+    text: The Memory Seed is safe. Turn to the next page to find the Memory Garden.
+    voiceClip: {fileID: 0}
+    holdAfter: 0
