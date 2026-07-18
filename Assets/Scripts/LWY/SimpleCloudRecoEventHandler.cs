@@ -21,6 +21,13 @@ public class SimpleCloudRecoEventHandler : MonoBehaviour
     public PageContent[] Pages;
     public AudioSource NarrationAudioSource;
 
+    [Header("UI Audio")]
+    public AudioSource UiAudioSource;
+    public AudioClip NextPageButtonClickClip;
+    public AudioClip ScanSuccessClip;
+    [Range(0f, 1f)]
+    public float UiAudioVolume = 1f;
+
     [Header("Main Canvas UI")]
     public bool AutoFindPageUi = true;
     public GameObject ScanPage;
@@ -30,7 +37,8 @@ public class SimpleCloudRecoEventHandler : MonoBehaviour
     public Button NextPageButton;
     public string NextPageButtonName = "NextPageButton";
     public float NextPageFadeSeconds = 0.5f;
-    public bool ShowScanPageOnStart = true;
+    public bool MainMenuControlsFirstScanPage = true;
+    public bool ShowScanPageOnStart = false;
     public bool HideScanPageWhenTargetFound = true;
 
     [System.Serializable]
@@ -60,11 +68,12 @@ public class SimpleCloudRecoEventHandler : MonoBehaviour
         mCloudRecoBehaviour.RegisterOnStateChangedEventHandler(OnStateChanged);
         mCloudRecoBehaviour.RegisterOnNewSearchResultEventHandler(OnNewSearchResult);
 
+        ResolveUiAudioSource();
         ResolvePageUiReferences();
         RegisterNextPageButtonListener();
         SetNextPageCanvasVisibleInstant(false);
 
-        if (ShowScanPageOnStart)
+        if (ShowScanPageOnStart && !MainMenuControlsFirstScanPage)
             SetScanPageVisible(true);
     }
     //Unregister cloud reco callbacks when the handler is destroyed
@@ -107,7 +116,9 @@ public class SimpleCloudRecoEventHandler : MonoBehaviour
 
         if (scanning)
         {
-            SetScanPageVisible(true);
+            if (!MainMenuControlsFirstScanPage)
+                SetScanPageVisible(true);
+
             SetNextPageCanvasVisibleInstant(false);
             ClearCurrentPage();
         }
@@ -116,6 +127,8 @@ public class SimpleCloudRecoEventHandler : MonoBehaviour
     // Here we handle a cloud target recognition event
     public void OnNewSearchResult(CloudRecoBehaviour.CloudRecoSearchResult cloudRecoSearchResult)
     {
+        PlayUiOneShot(ScanSuccessClip);
+
         // Store the target metadata
         mTargetMetadata = cloudRecoSearchResult.MetaData;
 
@@ -183,6 +196,7 @@ public class SimpleCloudRecoEventHandler : MonoBehaviour
 
     void OnNextPageButtonClicked()
     {
+        PlayUiOneShot(NextPageButtonClickClip);
         ScanNextPage();
     }
 
@@ -244,6 +258,36 @@ public class SimpleCloudRecoEventHandler : MonoBehaviour
             NarrationAudioSource.Stop();
             NarrationAudioSource.clip = null;
         }
+    }
+
+    void ResolveUiAudioSource()
+    {
+        if (UiAudioSource == null)
+        {
+            AudioSource[] audioSources = GetComponents<AudioSource>();
+            for (int i = 0; i < audioSources.Length; i++)
+            {
+                if (audioSources[i] != null && audioSources[i] != NarrationAudioSource)
+                {
+                    UiAudioSource = audioSources[i];
+                    break;
+                }
+            }
+        }
+
+        if (UiAudioSource == null)
+            UiAudioSource = NarrationAudioSource != null ? NarrationAudioSource : GetComponent<AudioSource>();
+    }
+
+    void PlayUiOneShot(AudioClip clip)
+    {
+        if (clip == null)
+            return;
+
+        ResolveUiAudioSource();
+
+        if (UiAudioSource != null)
+            UiAudioSource.PlayOneShot(clip, UiAudioVolume);
     }
 
     IEnumerator FadeNextPageCanvasRoutine(float targetAlpha)

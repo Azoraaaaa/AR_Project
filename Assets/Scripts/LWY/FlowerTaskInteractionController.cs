@@ -115,6 +115,7 @@ public class FlowerTaskInteractionController : MonoBehaviour
     public TaskIndexEvent TaskStarted = new TaskIndexEvent();
     public TaskIndexEvent TaskCompleted = new TaskIndexEvent();
     public UnityEvent AllTasksCompleted = new UnityEvent();
+    public UnityEvent TaskCompleteButtonClicked = new UnityEvent();
     public UnityEvent FlowerDragStarted = new UnityEvent();
     public UnityEvent FlowerDropFailed = new UnityEvent();
     public UnityEvent FlowerPlaced = new UnityEvent();
@@ -272,7 +273,10 @@ public class FlowerTaskInteractionController : MonoBehaviour
             return;
 
         if (!mIsBusy)
+        {
+            TaskCompleteButtonClicked.Invoke();
             StartCoroutine(CompleteCurrentTaskRoutine());
+        }
     }
 
     void HandlePointerDown(Vector2 screenPosition)
