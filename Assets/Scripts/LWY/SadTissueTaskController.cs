@@ -67,7 +67,6 @@ public class SadTissueTaskController : MonoBehaviour
 
     [Header("Tissue")]
     [SerializeField] private Transform tissueObject;
-    [SerializeField] private Rigidbody tissueRigidbody;
     [SerializeField] private bool hideTissueOnStart = true;
     [SerializeField] private bool followPointerWithoutPress = true;
     [SerializeField] private Transform dragPlaneReference;
@@ -260,10 +259,7 @@ public class SadTissueTaskController : MonoBehaviour
 
         Vector3 targetPosition = ray.GetPoint(enter) + planeNormal * tissueLiftHeight;
 
-        if (tissueRigidbody != null)
-            tissueRigidbody.MovePosition(targetPosition);
-        else
-            tissueObject.position = targetPosition;
+        tissueObject.position = targetPosition;
     }
 
     private void SpawnNextTear()
@@ -530,11 +526,6 @@ public class SadTissueTaskController : MonoBehaviour
         if (hideTissueOnStart)
             tissueObject.gameObject.SetActive(false);
 
-        if (tissueRigidbody != null)
-        {
-            tissueRigidbody.linearVelocity = Vector3.zero;
-            tissueRigidbody.angularVelocity = Vector3.zero;
-        }
     }
 
     private void SetInitialVisibility()
