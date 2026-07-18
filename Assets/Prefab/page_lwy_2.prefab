@@ -7500,7 +7500,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!4 &7398018631030749632
 Transform:
   m_ObjectHideFlags: 0
@@ -7556,30 +7556,32 @@ MonoBehaviour:
   butterflyDialoguePanel: {fileID: 7977361965978893539}
   butterflyDialogueText: {fileID: 4117673097074698284}
   useVoiceClipLength: 1
+  dialogueTypingSeconds: 0.05
   openingDialogue:
   - Text: Welcome to the Memory Garden.
-    VoiceClip: {fileID: 0}
-    DisplaySeconds: 1
+    VoiceClip: {fileID: 8300000, guid: 90c8bfac5e5095c42aab14c55a50b2c0, type: 3}
+    DisplaySeconds: 2
   - Text: "We came here to find the memories that can help Lumi\u2019s Memory Seed
       grow."
-    VoiceClip: {fileID: 0}
-    DisplaySeconds: 1
+    VoiceClip: {fileID: 8300000, guid: c450b5276349b9442b2e368706c41ea1, type: 3}
+    DisplaySeconds: 2
   - Text: "Some memories of you and Lumi are floating in the pond\u2014use the net
       to collect them."
-    VoiceClip: {fileID: 0}
-    DisplaySeconds: 1
+    VoiceClip: {fileID: 8300000, guid: ddf4d286dee2c4c47b41511c02a0910d, type: 3}
+    DisplaySeconds: 2
   finalStarDialogue:
   - Text: You found the moments you shared with Lumi, and these memories will always
       be part of you.
-    VoiceClip: {fileID: 0}
-    DisplaySeconds: 1
+    VoiceClip: {fileID: 8300000, guid: b19d97cb3059b6a47a95c013f48d9f7e, type: 3}
+    DisplaySeconds: 2
   - Text: "Take the Memory Star with you\u2014the Memory Seed will need its light."
-    VoiceClip: {fileID: 0}
-    DisplaySeconds: 1
+    VoiceClip: {fileID: 8300000, guid: c3f7a55726f2d6d4d9965c209f1ad2ed, type: 3}
+    DisplaySeconds: 2
   showLightAreaOnDialogueLine: 3
   showNetOnDialogueLine: 4
   hintPanel: {fileID: 4741558693664087893}
   hintText: {fileID: 3232646241358394252}
+  hintTypingSeconds: 0.05
   catchLightsHintText: Use the net to catch the lights
   finalStarHintText: Tap the star
   lightAreaRoot: {fileID: 3358449228310347231}
@@ -7606,7 +7608,7 @@ MonoBehaviour:
     MemoryImage: {fileID: 21300000, guid: d162f9363dc74ff439434eecdda6e1b6, type: 3}
     MemoryHintText: You always made Lumi happy when you filled the food bowl.
     StarImage: {fileID: 5859759613988947766}
-    CaughtClip: {fileID: 8300000, guid: 1b327aadc5b89b0449b1639ce1b0138a, type: 3}
+    CaughtClip: {fileID: 8300000, guid: 6fbd1b7fbb801fd4bbe37bad4ec51419, type: 3}
     StarChangedClip: {fileID: 8300000, guid: e9fc48129a3d57c4c981939473979ca2, type: 3}
     Collected: 0
     StartPosition: {x: 0, y: 0, z: 0}
@@ -7620,7 +7622,7 @@ MonoBehaviour:
     MemoryImage: {fileID: 21300000, guid: 9d4c3c9d469d22949afc120eee197aa6, type: 3}
     MemoryHintText: Lumi loved sleeping in the cosy bed while staying close to you.
     StarImage: {fileID: 5990859657922745855}
-    CaughtClip: {fileID: 8300000, guid: 1b327aadc5b89b0449b1639ce1b0138a, type: 3}
+    CaughtClip: {fileID: 8300000, guid: 6fbd1b7fbb801fd4bbe37bad4ec51419, type: 3}
     StarChangedClip: {fileID: 8300000, guid: e9fc48129a3d57c4c981939473979ca2, type: 3}
     Collected: 0
     StartPosition: {x: 0, y: 0, z: 0}
@@ -7667,6 +7669,7 @@ MonoBehaviour:
   propsBarAfterImageName: PropsBarAfterImage
   audioSource: {fileID: 2272021220431396977}
   showHintClip: {fileID: 0}
+  netDragStartClip: {fileID: 8300000, guid: 1b327aadc5b89b0449b1639ce1b0138a, type: 3}
   defaultLightCaughtClip: {fileID: 8300000, guid: e9fc48129a3d57c4c981939473979ca2,
     type: 3}
   defaultStarChangedClip: {fileID: 8300000, guid: eeb3b0044b5986a4cbdb5d1c86b96ea2,
@@ -34029,7 +34032,7 @@ Transform:
   m_GameObject: {fileID: 4301722444688220988}
   serializedVersion: 2
   m_LocalRotation: {x: 0.01134374, y: 0.93874645, z: -0.018921126, w: 0.34390184}
-  m_LocalPosition: {x: -2, y: 3.83, z: 1.49}
+  m_LocalPosition: {x: -2.8, y: 3.3, z: 2.43}
   m_LocalScale: {x: 3, y: 3, z: 3}
   m_ConstrainProportionsScale: 1
   m_Children:
