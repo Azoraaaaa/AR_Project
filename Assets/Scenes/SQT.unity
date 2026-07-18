@@ -1419,7 +1419,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &791090999
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -6009,6 +6009,21 @@ MonoBehaviour:
   ImageTargetTemplate: {fileID: 3797670841867671644}
   Pages: []
   NarrationAudioSource: {fileID: 0}
+  UiAudioSource: {fileID: 0}
+  NextPageButtonClickClip: {fileID: 0}
+  ScanSuccessClip: {fileID: 0}
+  UiAudioVolume: 1
+  AutoFindPageUi: 1
+  ScanPage: {fileID: 0}
+  ScanPageName: ScanPage
+  NextPageCanvas: {fileID: 0}
+  NextPageCanvasName: NextPageCanvas
+  NextPageButton: {fileID: 0}
+  NextPageButtonName: NextPageButton
+  NextPageFadeSeconds: 0.5
+  MainMenuControlsFirstScanPage: 1
+  ShowScanPageOnStart: 0
+  HideScanPageWhenTargetFound: 1
 --- !u!222 &1350943325367593778
 CanvasRenderer:
   m_ObjectHideFlags: 0

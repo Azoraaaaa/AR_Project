@@ -6,10 +6,14 @@ public class PauseManager : MonoBehaviour
     public GameObject pausePage;
 
 
-    [Header("Audio")]
-    public AudioSource audioSource;
+    [Header("Pause Audio Effect")]
+    public AudioSource buttonAudioSource;
     public AudioClip pauseSound;
     public AudioClip resumeSound;
+
+
+    [Header("All Game Audio Sources")]
+    public AudioSource[] allAudioSources;
 
 
     private bool isPaused = false;
@@ -17,15 +21,12 @@ public class PauseManager : MonoBehaviour
 
     void Start()
     {
-        // 游戏开始时隐藏暂停页面
         pausePage.SetActive(false);
 
-        // 确保时间正常
         Time.timeScale = 1;
     }
 
 
-    // Pause Button 调用
     public void PauseGame()
     {
         if (isPaused)
@@ -35,18 +36,27 @@ public class PauseManager : MonoBehaviour
         isPaused = true;
 
 
-        // 播放暂停音效
-        if (audioSource != null && pauseSound != null)
+        // Button sound
+        if (buttonAudioSource != null && pauseSound != null)
         {
-            audioSource.PlayOneShot(pauseSound);
+            buttonAudioSource.PlayOneShot(pauseSound);
         }
 
 
-        // 停止游戏时间
+        // Pause all audio
+        foreach (AudioSource audio in allAudioSources)
+        {
+            if (audio != null && audio.isPlaying)
+            {
+                audio.Pause();
+            }
+        }
+
+
+        // Pause animation and movement
         Time.timeScale = 0;
 
 
-        // 显示暂停页面
         pausePage.SetActive(true);
 
 
@@ -55,28 +65,35 @@ public class PauseManager : MonoBehaviour
 
 
 
-    // Resume Button 调用
     public void ResumeGame()
     {
         if (!isPaused)
             return;
 
 
-        // 播放恢复音效
-        if (audioSource != null && resumeSound != null)
+        // Resume sound
+        if (buttonAudioSource != null && resumeSound != null)
         {
-            audioSource.PlayOneShot(resumeSound);
+            buttonAudioSource.PlayOneShot(resumeSound);
         }
 
 
-        // 恢复游戏时间
+        // Resume all audio
+        foreach (AudioSource audio in allAudioSources)
+        {
+            if (audio != null)
+            {
+                audio.UnPause();
+            }
+        }
+
+
         Time.timeScale = 1;
 
 
         isPaused = false;
 
 
-        // 隐藏暂停页面
         pausePage.SetActive(false);
 
 
@@ -85,7 +102,6 @@ public class PauseManager : MonoBehaviour
 
 
 
-    // 防止切换Scene后保持暂停
     void OnDestroy()
     {
         Time.timeScale = 1;
