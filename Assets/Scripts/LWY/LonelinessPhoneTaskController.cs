@@ -66,10 +66,6 @@ public class LonelinessPhoneTaskController : MonoBehaviour
     [SerializeField] private DialogueLine[] introDialogue = new DialogueLine[0];
     [SerializeField] private DialogueLine[] completedDialogue = new DialogueLine[0];
 
-    [Header("Text Typing")]
-    [SerializeField] private float dialogueTypingSeconds = LwyTypewriterText.DefaultCharacterSeconds;
-    [SerializeField] private float hintTypingSeconds = LwyTypewriterText.DefaultCharacterSeconds;
-
     [Header("Hint UI")]
     [SerializeField] private GameObject hintPanel;
     [SerializeField] private TMP_Text hintText;
@@ -154,7 +150,6 @@ public class LonelinessPhoneTaskController : MonoBehaviour
     private Coroutine taskRoutine;
     private Coroutine avatarRoutine;
     private Coroutine lonelyOrbRoutine;
-    private Coroutine hintTypingRoutine;
     private Vector3 messageCanvasOriginalScale = Vector3.one;
     private Vector3 lonelyOrbOriginalScale = Vector3.one;
     private Vector3 receiverStartPosition;
@@ -520,22 +515,16 @@ public class LonelinessPhoneTaskController : MonoBehaviour
             if (line == null)
                 continue;
 
+            if (butterflyDialogueText != null)
+                butterflyDialogueText.text = line.Text;
+
             PlayOneShot(line.VoiceClip);
 
             float seconds = Mathf.Max(0f, line.DisplaySeconds);
             if (useVoiceClipLength && line.VoiceClip != null)
                 seconds = Mathf.Max(seconds, line.VoiceClip.length);
 
-            float typingSeconds = 0f;
-            if (butterflyDialogueText != null)
-            {
-                yield return LwyTypewriterText.TypeText(butterflyDialogueText, line.Text, dialogueTypingSeconds);
-                typingSeconds = LwyTypewriterText.GetTypingDuration(line.Text, dialogueTypingSeconds);
-            }
-
-            float remainingSeconds = seconds - typingSeconds;
-            if (remainingSeconds > 0f)
-                yield return new WaitForSeconds(remainingSeconds);
+            yield return new WaitForSeconds(seconds);
         }
 
         SetDialogueVisible(false);
@@ -754,27 +743,10 @@ public class LonelinessPhoneTaskController : MonoBehaviour
 
     private void SetHintText(string message, bool visible)
     {
-        if (hintTypingRoutine != null)
-        {
-            StopCoroutine(hintTypingRoutine);
-            hintTypingRoutine = null;
-        }
-
         SetObjectActive(hintPanel, visible);
 
         if (hintText != null)
-        {
-            if (visible && !string.IsNullOrEmpty(message))
-                hintTypingRoutine = StartCoroutine(TypeHintTextRoutine(message));
-            else
-                hintText.text = message;
-        }
-    }
-
-    private IEnumerator TypeHintTextRoutine(string message)
-    {
-        yield return LwyTypewriterText.TypeText(hintText, message, hintTypingSeconds);
-        hintTypingRoutine = null;
+            hintText.text = message;
     }
 
     private void SetNextButtonLabel()

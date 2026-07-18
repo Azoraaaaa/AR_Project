@@ -8,6 +8,7 @@ public class SimpleCloudRecoEventHandler : MonoBehaviour
     public static SimpleCloudRecoEventHandler Instance { get; private set; }
 
     CloudRecoBehaviour mCloudRecoBehaviour;
+    bool mIsScanning = false;
     string mTargetMetadata = "";
     GameObject mCurrentPageContent;
     Button mRegisteredNextPageButton;
@@ -111,6 +112,8 @@ public class SimpleCloudRecoEventHandler : MonoBehaviour
 
     public void OnStateChanged(bool scanning)
     {
+        mIsScanning = scanning;
+
         if (scanning)
         {
             if (!MainMenuControlsFirstScanPage)
@@ -156,6 +159,7 @@ public class SimpleCloudRecoEventHandler : MonoBehaviour
 
         ClearCurrentPage();
         mTargetMetadata = "";
+        mIsScanning = true;
 
         if (mCloudRecoBehaviour == null)
             return;
@@ -415,5 +419,22 @@ public class SimpleCloudRecoEventHandler : MonoBehaviour
         }
 
         return null;
+    }
+
+    void OnGUI()
+    {
+        // Display current 'scanning' status
+        GUI.Box(new Rect(100, 100, 200, 50), mIsScanning ? "Scanning" : "Not scanning");
+        // Display metadata of latest detected cloud-target
+        GUI.Box(new Rect(100, 200, 200, 50), "Metadata: " + mTargetMetadata);
+        // If not scanning, show button
+        // so that user can restart cloud scanning
+        if (!mIsScanning)
+        {
+            if (GUI.Button(new Rect(100, 300, 200, 50), "Restart Scanning"))
+            {
+                ScanNextPage();
+            }
+        }
     }
 }
