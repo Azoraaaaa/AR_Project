@@ -328,11 +328,6 @@ PrefabInstance:
       propertyPath: m_Name
       value: page_lwy_1
       objectReference: {fileID: 0}
-    - target: {fileID: 5263454432811688247, guid: 090c20416814e1b458699527f7b45f2f,
-        type: 3}
-      propertyPath: m_IsActive
-      value: 0
-      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []

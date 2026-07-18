@@ -109,6 +109,7 @@ public class FlowerEmotionGuideController : MonoBehaviour
     [SerializeField] private AudioClip flowerTouchedClip;
     [SerializeField] private AudioClip flowerDragStartedClip;
     [SerializeField] private AudioClip orbSelectedClip;
+    [SerializeField] private AudioClip taskNextButtonClickClip;
     [SerializeField] private AudioClip taskCompletedClip;
     [SerializeField] private AudioClip allOrbsCompletedClip;
     [SerializeField] private AudioClip flowerPlacedClip;
@@ -238,6 +239,11 @@ public class FlowerEmotionGuideController : MonoBehaviour
     {
         StopGuideRoutine();
         HideAllHints(false);
+    }
+
+    private void OnTaskCompleteButtonClicked()
+    {
+        PlayOneShot(taskNextButtonClickClip);
     }
 
     private void OnTaskCompleted(int taskIndex)
@@ -466,6 +472,13 @@ public class FlowerEmotionGuideController : MonoBehaviour
         SetObjectActive(propsBarAfterImage, true);
 
         PlayOneShot(propsBarChangedClip);
+        ShowNextPageCanvas();
+    }
+
+    private void ShowNextPageCanvas()
+    {
+        if (SimpleCloudRecoEventHandler.Instance != null)
+            SimpleCloudRecoEventHandler.Instance.ShowNextPageCanvas();
     }
 
     private bool IsFlowerClicked(Vector2 screenPosition)
@@ -692,6 +705,7 @@ public class FlowerEmotionGuideController : MonoBehaviour
         flowerController.FlowerTouched.AddListener(OnFlowerTouched);
         flowerController.OrbSelected.AddListener(OnOrbSelected);
         flowerController.TaskStarted.AddListener(OnTaskStarted);
+        flowerController.TaskCompleteButtonClicked.AddListener(OnTaskCompleteButtonClicked);
         flowerController.TaskCompleted.AddListener(OnTaskCompleted);
         flowerController.AllTasksCompleted.AddListener(OnAllTasksCompleted);
         flowerController.FlowerDragStarted.AddListener(OnFlowerDragStarted);
@@ -709,6 +723,7 @@ public class FlowerEmotionGuideController : MonoBehaviour
         flowerController.FlowerTouched.RemoveListener(OnFlowerTouched);
         flowerController.OrbSelected.RemoveListener(OnOrbSelected);
         flowerController.TaskStarted.RemoveListener(OnTaskStarted);
+        flowerController.TaskCompleteButtonClicked.RemoveListener(OnTaskCompleteButtonClicked);
         flowerController.TaskCompleted.RemoveListener(OnTaskCompleted);
         flowerController.AllTasksCompleted.RemoveListener(OnAllTasksCompleted);
         flowerController.FlowerDragStarted.RemoveListener(OnFlowerDragStarted);

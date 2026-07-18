@@ -806,6 +806,13 @@ public class MemoryFragmentInteractionController : MonoBehaviour
         PlayOneShot(propsBarChangedClip);
 
         FinalStarCollected.Invoke();
+        ShowNextPageCanvas();
+    }
+
+    private void ShowNextPageCanvas()
+    {
+        if (SimpleCloudRecoEventHandler.Instance != null)
+            SimpleCloudRecoEventHandler.Instance.ShowNextPageCanvas();
     }
 
     private bool AllMemoriesCollected()
