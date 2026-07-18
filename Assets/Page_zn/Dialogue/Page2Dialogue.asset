@@ -14,30 +14,45 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   introButterflyLines:
   - text: You have brought Lumi's Memory Seed to the Memory Garden.
+    voiceClip: {fileID: 8300000, guid: 1abc08aacfb05aa4097b1ac9ef1f5976, type: 3}
     holdAfter: 2.5
   - text: A Memory Seed does not grow from water or sunlight alone.
+    voiceClip: {fileID: 8300000, guid: f16e46f5a21cf5f4e8f41653739b323a, type: 3}
     holdAfter: 2.5
   - text: It grows as the heart learns to understand, to feel, and to remember.
+    voiceClip: {fileID: 8300000, guid: e964987dab9f66e4480542c9511465e8, type: 3}
     holdAfter: 3
   - text: The garden can guide you, though not every answer grows among its flowers.
+    voiceClip: {fileID: 8300000, guid: c76cdcd895123284a8efc97555256dda, type: 3}
     holdAfter: 3
   - text: First, we must get inside. Try opening the gate.
+    voiceClip: {fileID: 8300000, guid: 2448b842a6617004392da6877794913b, type: 3}
     holdAfter: 0
   lockedGateHintLines:
   - text: The gate will not open. It is locked.
+    voiceClip: {fileID: 0}
     holdAfter: 2
   - text: Look closely. Lumi may have left a trail for you to follow.
+    voiceClip: {fileID: 0}
     holdAfter: 1
-  pawTrailHint: Follow Lumi's paw prints. Tap them one by one.
+  pawTrailHint:
+    text: Follow Lumi's paw prints. Tap them one by one.
+    voiceClip: {fileID: 0}
+    holdAfter: 0
   keyRevealHintLines:
   - text: The last paw print fades, and a small key begins to shine.
+    voiceClip: {fileID: 0}
     holdAfter: 2.5
   - text: Lumi's trail has led you to the Memory Key. Tap it to unlock the gate.
+    voiceClip: {fileID: 0}
     holdAfter: 0
   gateOpenedButterflyLines:
   - text: The path to the Memory Garden is open.
+    voiceClip: {fileID: 8300000, guid: 434f713f6cbe97c4faa8aefb6dde0bba, type: 3}
     holdAfter: 2.5
   - text: Carry the Memory Seed inside. Your journey of understanding has only begun.
+    voiceClip: {fileID: 8300000, guid: e723c4bde64a1014f99b8dac3543724b, type: 3}
     holdAfter: 3
   - text: Let's enter the garden.
+    voiceClip: {fileID: 8300000, guid: 5ce8437db8c13da4ebf55f414386dce2, type: 3}
     holdAfter: 0

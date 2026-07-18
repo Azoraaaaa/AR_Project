@@ -820,7 +820,12 @@ public class Page1MemoryManager : MonoBehaviour
         isSwitching = false;
         allMemoriesFinished = true;
 
-        OnAllMemoriesCompleted();
+        /*
+         * Wait until the final memory narration,
+         * voice clip and Hold After are complete
+         * before beginning the seed sequence.
+         */
+        yield return OnAllMemoriesCompleted();
     }
 
     private void PrepareAndPlayAnimator(
@@ -936,7 +941,7 @@ public class Page1MemoryManager : MonoBehaviour
             endScale;
     }
 
-    private void OnAllMemoriesCompleted()
+    private IEnumerator OnAllMemoriesCompleted()
     {
         StopMemoryLoop();
 
@@ -945,12 +950,22 @@ public class Page1MemoryManager : MonoBehaviour
             "have been completed."
         );
 
+        /*
+         * Wait until the text has finished typing,
+         * the voice clip has finished playing,
+         * and Hold After has finished.
+         */
         if (dialogueController != null)
         {
-            dialogueController
-                .ShowAllMemoriesCompletedHint();
+            yield return
+                dialogueController
+                    .PlayAllMemoriesCompletedHint();
         }
 
+        /*
+         * Begin the seed sequence only after
+         * the final memory narration is complete.
+         */
         if (seedButterflyManager != null)
         {
             seedButterflyManager.BeginSequence();

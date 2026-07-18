@@ -5,13 +5,21 @@ using UnityEngine;
 public class Page1DialogueLine
 {
     [TextArea(2, 6)]
+    [Tooltip("The dialogue or narration text.")]
     public string text;
 
     [Tooltip(
-        "How long to wait after this line finishes typing."
+        "Optional voice clip for this line. " +
+        "Leave it empty if this line has no voice."
+    )]
+    public AudioClip voiceClip;
+
+    [Tooltip(
+        "Extra waiting time after both the text " +
+        "and voice have finished."
     )]
     [Min(0f)]
-    public float holdAfter = 2f;
+    public float holdAfter = 0f;
 }
 
 [CreateAssetMenu(
@@ -21,39 +29,64 @@ public class Page1DialogueLine
 public class Page1DialogueData : ScriptableObject
 {
     [Header("Opening Narration")]
+    [Tooltip(
+        "Opening narration lines played at the beginning of Page 1."
+    )]
     public Page1DialogueLine[] introLines;
 
     [Header("Memory Hints")]
-    [TextArea(2, 6)]
-    public string ballMemoryHint;
+    [Tooltip(
+        "Text and optional voice used for the ball memory."
+    )]
+    public Page1DialogueLine ballMemoryHint;
 
-    [TextArea(2, 6)]
-    public string bedMemoryHint;
+    [Tooltip(
+        "Text and optional voice used for the dog bed memory."
+    )]
+    public Page1DialogueLine bedMemoryHint;
 
-    [TextArea(2, 6)]
-    public string collarMemoryHint;
+    [Tooltip(
+        "Text and optional voice used for the collar memory."
+    )]
+    public Page1DialogueLine collarMemoryHint;
 
-    [TextArea(2, 6)]
-    public string foodMemoryHint;
+    [Tooltip(
+        "Text and optional voice used for the food bowl memory."
+    )]
+    public Page1DialogueLine foodMemoryHint;
 
     [Header("After All Memories")]
-    [TextArea(2, 6)]
-    public string allMemoriesCompletedHint;
+    [Tooltip(
+        "Narration played after all four memories are completed."
+    )]
+    public Page1DialogueLine allMemoriesCompletedHint;
 
     [Header("Seed Narration")]
-    [TextArea(2, 6)]
-    public string seedRevealHint;
+    [Tooltip(
+        "Narration played when the Memory Seed appears."
+    )]
+    public Page1DialogueLine seedRevealHint;
 
-    [TextArea(2, 6)]
-    public string seedFirstTapHint;
+    [Tooltip(
+        "Narration played after the seed is selected " +
+        "for the first time."
+    )]
+    public Page1DialogueLine seedFirstTapHint;
 
     [Header("Butterfly Dialogue")]
+    [Tooltip(
+        "Butterfly dialogue lines explaining the Memory Seed."
+    )]
     public Page1DialogueLine[] butterflyLines;
 
     [Header("Seed Collection")]
-    [TextArea(2, 6)]
-    public string collectSeedHint;
+    [Tooltip(
+        "Instruction telling the player to collect the Memory Seed."
+    )]
+    public Page1DialogueLine collectSeedHint;
 
-    [TextArea(2, 6)]
-    public string pageCompletedHint;
+    [Tooltip(
+        "Final Page 1 message shown after the seed is collected."
+    )]
+    public Page1DialogueLine pageCompletedHint;
 }

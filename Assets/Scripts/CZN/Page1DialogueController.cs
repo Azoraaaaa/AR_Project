@@ -11,101 +11,219 @@ public class Page1DialogueController : MonoBehaviour
     }
 
     [Header("Dialogue Data")]
+    [Tooltip(
+        "Contains all Page 1 dialogue text, voice clips, " +
+        "and waiting times."
+    )]
     [SerializeField]
     private Page1DialogueData dialogueData;
 
     [Header("Game Hint")]
+    [Tooltip(
+        "The GameHint panel used for narration " +
+        "and interaction instructions."
+    )]
     [SerializeField]
-    private GameObject gameHintRoot;
+    private GameObject gameHintPanel;
 
+    [Tooltip(
+        "The TextMeshPro text inside GameHint."
+    )]
     [SerializeField]
     private TMP_Text gameHintText;
 
-    [Header("Butterfly Story Box")]
+    [Header("Butterfly Story Dialogue")]
+    [Tooltip(
+        "The StoryBG panel used when the butterfly speaks."
+    )]
     [SerializeField]
-    private GameObject storyBackgroundRoot;
+    private GameObject storyPanel;
 
+    [Tooltip(
+        "The TextMeshPro text inside StoryBG."
+    )]
     [SerializeField]
     private TMP_Text storyText;
 
-    [Header("Unused UI")]
+    [Header("Other UI")]
+    [Tooltip(
+        "Optional PropsBar. It remains hidden on Page 1."
+    )]
     [SerializeField]
-    private GameObject propsBarRoot;
+    private GameObject propsBar;
+
+    [Header("Dialogue Voice")]
+    [Tooltip(
+        "Plays narration and butterfly voice clips."
+    )]
+    [SerializeField]
+    private AudioSource dialogueVoiceSource;
 
     [Header("Typewriter")]
-    [Tooltip("Number of visible characters per second.")]
+    [Tooltip(
+        "How many characters appear each second."
+    )]
+    [Min(1f)]
     [SerializeField]
     private float charactersPerSecond = 35f;
 
     private Coroutine activeDialogueRoutine;
 
-    public bool IsTyping { get; private set; }
+    public bool IsTyping
+    {
+        get;
+        private set;
+    }
 
     private void Awake()
     {
-        if (propsBarRoot != null)
-        {
-            propsBarRoot.SetActive(false);
-        }
-
-        ShowPanel(
-            DialoguePanel.Hint
-        );
-
-        ClearText();
+        InitialisePanels();
+        InitialiseAudioSource();
     }
 
-    public Coroutine PlayIntroSequence()
+    private void OnDisable()
     {
-        Page1DialogueLine[] lines = null;
-
-        if (dialogueData != null)
-        {
-            lines =
-                dialogueData.introLines;
-        }
-
-        return BeginSequence(
-            lines,
-            DialoguePanel.Hint
-        );
+        StopActiveDialogue();
     }
 
-    public void ShowMemoryHint(
-        MemoryType memoryType)
+    private void InitialisePanels()
     {
-        if (dialogueData == null)
+        SetObjectActive(
+            gameHintPanel,
+            false
+        );
+
+        SetObjectActive(
+            storyPanel,
+            false
+        );
+
+        SetObjectActive(
+            propsBar,
+            false
+        );
+
+        if (gameHintText != null)
+        {
+            gameHintText.text = string.Empty;
+            gameHintText.maxVisibleCharacters = 0;
+        }
+
+        if (storyText != null)
+        {
+            storyText.text = string.Empty;
+            storyText.maxVisibleCharacters = 0;
+        }
+    }
+
+    private void InitialiseAudioSource()
+    {
+        if (dialogueVoiceSource == null)
         {
             return;
         }
 
-        string message = "";
+        dialogueVoiceSource.playOnAwake = false;
+        dialogueVoiceSource.loop = false;
+        dialogueVoiceSource.spatialBlend = 0f;
+    }
 
-        switch (memoryType)
+    /*
+     * Opening narration.
+     *
+     * Page1MemoryManager should use:
+     *
+     * yield return
+     *     dialogueController.PlayIntroSequence();
+     */
+    public IEnumerator PlayIntroSequence()
+    {
+        if (dialogueData == null)
         {
-            case MemoryType.Ball:
-                message =
-                    dialogueData.ballMemoryHint;
-                break;
+            Debug.LogError(
+                "Page1DialogueData has not been assigned."
+            );
 
-            case MemoryType.Bed:
-                message =
-                    dialogueData.bedMemoryHint;
-                break;
-
-            case MemoryType.Collar:
-                message =
-                    dialogueData.collarMemoryHint;
-                break;
-
-            case MemoryType.Food:
-                message =
-                    dialogueData.foodMemoryHint;
-                break;
+            yield break;
         }
 
-        ShowHint(
-            message
+        yield return PlaySequenceAndWait(
+            dialogueData.introLines,
+            DialoguePanel.Hint
+        );
+    }
+
+    /*
+     * This second name is kept as an optional alias.
+     */
+    public IEnumerator PlayIntroNarration()
+    {
+        yield return PlayIntroSequence();
+    }
+
+    /*
+     * Display the correct narration for a memory.
+     *
+     * This version starts the text and voice,
+     * but does not make the calling Manager wait.
+     */
+    public void ShowMemoryHint(
+        MemoryType memoryType)
+    {
+        Page1DialogueLine line =
+            GetMemoryHint(
+                memoryType
+            );
+
+        StartSingleLine(
+            line,
+            DialoguePanel.Hint
+        );
+    }
+
+    /*
+     * Use this version when the Manager must wait
+     * until both the voice and text are complete.
+     */
+    public IEnumerator PlayMemoryHint(
+        MemoryType memoryType)
+    {
+        Page1DialogueLine line =
+            GetMemoryHint(
+                memoryType
+            );
+
+        yield return PlaySingleLineAndWait(
+            line,
+            DialoguePanel.Hint
+        );
+    }
+
+    public void ShowBallMemoryHint()
+    {
+        ShowMemoryHint(
+            MemoryType.Ball
+        );
+    }
+
+    public void ShowBedMemoryHint()
+    {
+        ShowMemoryHint(
+            MemoryType.Bed
+        );
+    }
+
+    public void ShowCollarMemoryHint()
+    {
+        ShowMemoryHint(
+            MemoryType.Collar
+        );
+    }
+
+    public void ShowFoodMemoryHint()
+    {
+        ShowMemoryHint(
+            MemoryType.Food
         );
     }
 
@@ -116,8 +234,22 @@ public class Page1DialogueController : MonoBehaviour
             return;
         }
 
-        ShowHint(
-            dialogueData.allMemoriesCompletedHint
+        StartSingleLine(
+            dialogueData.allMemoriesCompletedHint,
+            DialoguePanel.Hint
+        );
+    }
+
+    public IEnumerator PlayAllMemoriesCompletedHint()
+    {
+        if (dialogueData == null)
+        {
+            yield break;
+        }
+
+        yield return PlaySingleLineAndWait(
+            dialogueData.allMemoriesCompletedHint,
+            DialoguePanel.Hint
         );
     }
 
@@ -128,8 +260,22 @@ public class Page1DialogueController : MonoBehaviour
             return;
         }
 
-        ShowHint(
-            dialogueData.seedRevealHint
+        StartSingleLine(
+            dialogueData.seedRevealHint,
+            DialoguePanel.Hint
+        );
+    }
+
+    public IEnumerator PlaySeedRevealHint()
+    {
+        if (dialogueData == null)
+        {
+            yield break;
+        }
+
+        yield return PlaySingleLineAndWait(
+            dialogueData.seedRevealHint,
+            DialoguePanel.Hint
         );
     }
 
@@ -140,23 +286,46 @@ public class Page1DialogueController : MonoBehaviour
             return;
         }
 
-        ShowHint(
-            dialogueData.seedFirstTapHint
+        StartSingleLine(
+            dialogueData.seedFirstTapHint,
+            DialoguePanel.Hint
         );
     }
 
-    public Coroutine PlayButterflyDialogue()
+    public IEnumerator PlaySeedFirstTapHint()
     {
-        Page1DialogueLine[] lines = null;
-
-        if (dialogueData != null)
+        if (dialogueData == null)
         {
-            lines =
-                dialogueData.butterflyLines;
+            yield break;
         }
 
-        return BeginSequence(
-            lines,
+        yield return PlaySingleLineAndWait(
+            dialogueData.seedFirstTapHint,
+            DialoguePanel.Hint
+        );
+    }
+
+    /*
+     * The butterfly dialogue uses StoryBG.
+     *
+     * SeedButterflyManager already waits for this:
+     *
+     * yield return
+     *     dialogueController.PlayButterflyDialogue();
+     */
+    public IEnumerator PlayButterflyDialogue()
+    {
+        if (dialogueData == null)
+        {
+            Debug.LogError(
+                "Page1DialogueData has not been assigned."
+            );
+
+            yield break;
+        }
+
+        yield return PlaySequenceAndWait(
+            dialogueData.butterflyLines,
             DialoguePanel.Butterfly
         );
     }
@@ -168,8 +337,22 @@ public class Page1DialogueController : MonoBehaviour
             return;
         }
 
-        ShowHint(
-            dialogueData.collectSeedHint
+        StartSingleLine(
+            dialogueData.collectSeedHint,
+            DialoguePanel.Hint
+        );
+    }
+
+    public IEnumerator PlayCollectSeedHint()
+    {
+        if (dialogueData == null)
+        {
+            yield break;
+        }
+
+        yield return PlaySingleLineAndWait(
+            dialogueData.collectSeedHint,
+            DialoguePanel.Hint
         );
     }
 
@@ -180,45 +363,85 @@ public class Page1DialogueController : MonoBehaviour
             return;
         }
 
-        ShowHint(
-            dialogueData.pageCompletedHint
+        StartSingleLine(
+            dialogueData.pageCompletedHint,
+            DialoguePanel.Hint
         );
     }
 
-    public void ShowHint(
-        string message)
+    public IEnumerator PlayPageCompletedHint()
+    {
+        if (dialogueData == null)
+        {
+            yield break;
+        }
+
+        yield return PlaySingleLineAndWait(
+            dialogueData.pageCompletedHint,
+            DialoguePanel.Hint
+        );
+    }
+
+    private Page1DialogueLine GetMemoryHint(
+        MemoryType memoryType)
+    {
+        if (dialogueData == null)
+        {
+            return null;
+        }
+
+        switch (memoryType)
+        {
+            case MemoryType.Ball:
+                return dialogueData.ballMemoryHint;
+
+            case MemoryType.Bed:
+                return dialogueData.bedMemoryHint;
+
+            case MemoryType.Collar:
+                return dialogueData.collarMemoryHint;
+
+            case MemoryType.Food:
+                return dialogueData.foodMemoryHint;
+
+            default:
+                return null;
+        }
+    }
+
+    private void StartSingleLine(
+        Page1DialogueLine line,
+        DialoguePanel panel)
     {
         StopActiveDialogue();
 
-        ShowPanel(
-            DialoguePanel.Hint
-        );
-
         activeDialogueRoutine =
             StartCoroutine(
-                TypeSingleLineRoutine(
-                    gameHintText,
-                    message
+                PlaySingleLineRoutine(
+                    line,
+                    panel
                 )
             );
     }
 
-    public void HideAllDialogue()
+    private IEnumerator PlaySingleLineAndWait(
+        Page1DialogueLine line,
+        DialoguePanel panel)
     {
         StopActiveDialogue();
 
-        if (gameHintRoot != null)
-        {
-            gameHintRoot.SetActive(false);
-        }
+        activeDialogueRoutine =
+            StartCoroutine(
+                PlaySingleLineRoutine(
+                    line,
+                    panel
+                )
+            );
 
-        if (storyBackgroundRoot != null)
-        {
-            storyBackgroundRoot.SetActive(false);
-        }
+        yield return activeDialogueRoutine;
     }
 
-    private Coroutine BeginSequence(
+    private IEnumerator PlaySequenceAndWait(
         Page1DialogueLine[] lines,
         DialoguePanel panel)
     {
@@ -232,7 +455,43 @@ public class Page1DialogueController : MonoBehaviour
                 )
             );
 
-        return activeDialogueRoutine;
+        yield return activeDialogueRoutine;
+    }
+
+    private IEnumerator PlaySingleLineRoutine(
+        Page1DialogueLine line,
+        DialoguePanel panel)
+    {
+        IsTyping = true;
+
+        ShowPanel(
+            panel
+        );
+
+        TMP_Text targetText =
+            GetTargetText(
+                panel
+            );
+
+        if (line == null)
+        {
+            ClearTargetText(
+                targetText
+            );
+
+            IsTyping = false;
+            activeDialogueRoutine = null;
+
+            yield break;
+        }
+
+        yield return PlayDialogueLineRoutine(
+            targetText,
+            line
+        );
+
+        IsTyping = false;
+        activeDialogueRoutine = null;
     }
 
     private IEnumerator PlaySequenceRoutine(
@@ -246,15 +505,20 @@ public class Page1DialogueController : MonoBehaviour
         );
 
         TMP_Text targetText =
-            panel == DialoguePanel.Hint
-            ? gameHintText
-            : storyText;
+            GetTargetText(
+                panel
+            );
 
         if (lines == null ||
             lines.Length == 0)
         {
+            ClearTargetText(
+                targetText
+            );
+
             IsTyping = false;
             activeDialogueRoutine = null;
+
             yield break;
         }
 
@@ -270,36 +534,82 @@ public class Page1DialogueController : MonoBehaviour
                 continue;
             }
 
-            yield return TypeTextRoutine(
+            /*
+             * Each new line starts only after
+             * the previous text and voice are complete.
+             */
+            yield return PlayDialogueLineRoutine(
                 targetText,
-                line.text
+                line
             );
-
-            if (line.holdAfter > 0f)
-            {
-                yield return new WaitForSeconds(
-                    line.holdAfter
-                );
-            }
         }
 
         IsTyping = false;
         activeDialogueRoutine = null;
     }
 
-    private IEnumerator TypeSingleLineRoutine(
+    private IEnumerator PlayDialogueLineRoutine(
         TMP_Text targetText,
-        string message)
+        Page1DialogueLine line)
     {
-        IsTyping = true;
+        if (line == null)
+        {
+            yield break;
+        }
 
+        bool voiceStarted = false;
+
+        /*
+         * The voice and typewriter text begin
+         * during the same frame.
+         */
+        if (dialogueVoiceSource != null &&
+            line.voiceClip != null)
+        {
+            dialogueVoiceSource.Stop();
+
+            dialogueVoiceSource.clip =
+                line.voiceClip;
+
+            dialogueVoiceSource.loop =
+                false;
+
+            dialogueVoiceSource.Play();
+
+            voiceStarted = true;
+        }
+
+        /*
+         * Wait until all text has appeared.
+         * The voice continues playing at the same time.
+         */
         yield return TypeTextRoutine(
             targetText,
-            message
+            line.text
         );
 
-        IsTyping = false;
-        activeDialogueRoutine = null;
+        /*
+         * If the text finishes first, wait until
+         * the voice clip also finishes.
+         *
+         * If the voice finishes first, the typewriter
+         * routine has already waited for the text.
+         */
+        if (voiceStarted)
+        {
+            yield return new WaitWhile(
+                () =>
+                    dialogueVoiceSource != null &&
+                    dialogueVoiceSource.isPlaying
+            );
+        }
+
+        if (line.holdAfter > 0f)
+        {
+            yield return new WaitForSeconds(
+                line.holdAfter
+            );
+        }
     }
 
     private IEnumerator TypeTextRoutine(
@@ -308,11 +618,15 @@ public class Page1DialogueController : MonoBehaviour
     {
         if (targetText == null)
         {
+            Debug.LogError(
+                "The dialogue TMP_Text has not been assigned."
+            );
+
             yield break;
         }
 
         targetText.text =
-            message ?? "";
+            message ?? string.Empty;
 
         targetText.maxVisibleCharacters =
             0;
@@ -322,29 +636,37 @@ public class Page1DialogueController : MonoBehaviour
         int totalCharacters =
             targetText.textInfo.characterCount;
 
-        float safeSpeed =
+        if (totalCharacters <= 0)
+        {
+            yield break;
+        }
+
+        float safeCharactersPerSecond =
             Mathf.Max(
                 1f,
                 charactersPerSecond
             );
 
-        float visibleCharacterCount =
+        float visibleCharacterProgress =
             0f;
 
         while (
             targetText.maxVisibleCharacters <
             totalCharacters)
         {
-            visibleCharacterCount +=
-                safeSpeed *
+            visibleCharacterProgress +=
+                safeCharactersPerSecond *
                 Time.deltaTime;
+
+            int visibleCharacters =
+                Mathf.FloorToInt(
+                    visibleCharacterProgress
+                );
 
             targetText.maxVisibleCharacters =
                 Mathf.Min(
-                    totalCharacters,
-                    Mathf.FloorToInt(
-                        visibleCharacterCount
-                    )
+                    visibleCharacters,
+                    totalCharacters
                 );
 
             yield return null;
@@ -358,21 +680,50 @@ public class Page1DialogueController : MonoBehaviour
         DialoguePanel panel)
     {
         bool showHint =
-            panel == DialoguePanel.Hint;
+            panel ==
+            DialoguePanel.Hint;
 
-        if (gameHintRoot != null)
+        SetObjectActive(
+            gameHintPanel,
+            showHint
+        );
+
+        SetObjectActive(
+            storyPanel,
+            !showHint
+        );
+
+        SetObjectActive(
+            propsBar,
+            false
+        );
+    }
+
+    private TMP_Text GetTargetText(
+        DialoguePanel panel)
+    {
+        if (panel ==
+            DialoguePanel.Hint)
         {
-            gameHintRoot.SetActive(
-                showHint
-            );
+            return gameHintText;
         }
 
-        if (storyBackgroundRoot != null)
+        return storyText;
+    }
+
+    private void ClearTargetText(
+        TMP_Text targetText)
+    {
+        if (targetText == null)
         {
-            storyBackgroundRoot.SetActive(
-                !showHint
-            );
+            return;
         }
+
+        targetText.text =
+            string.Empty;
+
+        targetText.maxVisibleCharacters =
+            0;
     }
 
     private void StopActiveDialogue()
@@ -383,23 +734,42 @@ public class Page1DialogueController : MonoBehaviour
                 activeDialogueRoutine
             );
 
-            activeDialogueRoutine =
-                null;
+            activeDialogueRoutine = null;
+        }
+
+        if (dialogueVoiceSource != null)
+        {
+            dialogueVoiceSource.Stop();
+            dialogueVoiceSource.clip = null;
         }
 
         IsTyping = false;
     }
 
-    private void ClearText()
+    public void HideAllDialogue()
     {
-        if (gameHintText != null)
-        {
-            gameHintText.text = "";
-        }
+        StopActiveDialogue();
 
-        if (storyText != null)
+        SetObjectActive(
+            gameHintPanel,
+            false
+        );
+
+        SetObjectActive(
+            storyPanel,
+            false
+        );
+    }
+
+    private void SetObjectActive(
+        GameObject targetObject,
+        bool isActive)
+    {
+        if (targetObject != null)
         {
-            storyText.text = "";
+            targetObject.SetActive(
+                isActive
+            );
         }
     }
 }
