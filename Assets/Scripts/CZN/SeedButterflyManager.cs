@@ -124,8 +124,7 @@ public class SeedButterflyManager : MonoBehaviour
     private AudioSource sequenceOneShotSource;
 
     [Tooltip(
-        "Used for the butterfly wing sound " +
-        "that continues looping."
+        "Used to play the butterfly wing sound once."
     )]
     [SerializeField]
     private AudioSource butterflyLoopSource;
@@ -143,7 +142,7 @@ public class SeedButterflyManager : MonoBehaviour
     private AudioClip seedSelectClip;
 
     [Tooltip(
-        "Looped while the butterfly is visible."
+        "Played once when the butterfly appears."
     )]
     [SerializeField]
     private AudioClip butterflyWingLoopClip;
@@ -170,7 +169,7 @@ public class SeedButterflyManager : MonoBehaviour
             sequenceOneShotSource.Stop();
         }
 
-        StopButterflyWingLoop();
+        StopButterflyWingSound();
     }
 
     private void InitialiseSeed()
@@ -234,8 +233,11 @@ public class SeedButterflyManager : MonoBehaviour
             butterflyLoopSource.playOnAwake =
                 false;
 
+            /*
+             * The butterfly wing sound only plays once.
+             */
             butterflyLoopSource.loop =
-                true;
+                false;
 
             butterflyLoopSource.spatialBlend =
                 0f;
@@ -268,11 +270,8 @@ public class SeedButterflyManager : MonoBehaviour
         }
 
         /*
-         * Page1MemoryManager has already shown
-         * the All Memories Completed narration.
-         *
-         * Keep that GameHint visible while waiting
-         * for the seed to appear.
+         * Keep the all-memories-completed hint visible
+         * while waiting for the seed to appear.
          */
         if (seedSparkle != null)
         {
@@ -350,10 +349,6 @@ public class SeedButterflyManager : MonoBehaviour
             true
         );
 
-        /*
-         * Display the editable seed reveal text
-         * from Page1DialogueData.
-         */
         if (dialogueController != null)
         {
             dialogueController
@@ -447,10 +442,6 @@ public class SeedButterflyManager : MonoBehaviour
                 "Seed Display Point has not been assigned."
             );
 
-            /*
-             * Allow the player to try again after
-             * the missing reference has been fixed.
-             */
             seedStage =
                 SeedStage.WaitingForFirstTap;
 
@@ -577,9 +568,8 @@ public class SeedButterflyManager : MonoBehaviour
             );
 
             /*
-             * Even if the butterfly references are missing,
-             * permit seed collection so the sequence
-             * does not become permanently stuck.
+             * Permit seed collection even if the
+             * butterfly references are incomplete.
              */
             EnableSeedCollection();
 
@@ -588,17 +578,13 @@ public class SeedButterflyManager : MonoBehaviour
 
         /*
          * Detach the butterfly while preserving its
-         * current correct world-facing direction.
+         * current world-facing direction.
          */
         butterflyObject.transform.SetParent(
             null,
             true
         );
 
-        /*
-         * Store the butterfly model's existing rotation.
-         * Do not use ButterflyStartPoint.rotation.
-         */
         Quaternion butterflyFlightRotation =
             butterflyObject.transform.rotation;
 
@@ -614,7 +600,12 @@ public class SeedButterflyManager : MonoBehaviour
         butterflyObject.SetActive(true);
 
         PlayButterflyAnimation();
-        StartButterflyWingLoop();
+
+        /*
+         * Play the wing sound once when
+         * the butterfly starts flying.
+         */
+        PlayButterflyWingOnce();
 
         Vector3 startPosition =
             butterflyStartPoint.position;
@@ -690,7 +681,7 @@ public class SeedButterflyManager : MonoBehaviour
 
         /*
          * Do not set localRotation to Quaternion.identity.
-         * That would make the butterfly suddenly turn
+         * This prevents the butterfly from turning
          * when it reaches the destination.
          */
 
@@ -698,10 +689,6 @@ public class SeedButterflyManager : MonoBehaviour
             0.5f
         );
 
-        /*
-         * GameHint is hidden and StoryBG is displayed
-         * automatically by Page1DialogueController.
-         */
         if (dialogueController != null)
         {
             yield return
@@ -739,10 +726,6 @@ public class SeedButterflyManager : MonoBehaviour
             true
         );
 
-        /*
-         * This automatically hides StoryBG and
-         * switches back to GameHint.
-         */
         if (dialogueController != null)
         {
             dialogueController
@@ -802,7 +785,11 @@ public class SeedButterflyManager : MonoBehaviour
                 seedOriginalScale;
         }
 
-        StopButterflyWingLoop();
+        /*
+         * Stop the wing sound if the clip is still playing.
+         * If it has already finished, this has no effect.
+         */
+        StopButterflyWingSound();
 
         if (butterflyObject != null)
         {
@@ -892,7 +879,7 @@ public class SeedButterflyManager : MonoBehaviour
         );
     }
 
-    private void StartButterflyWingLoop()
+    private void PlayButterflyWingOnce()
     {
         if (butterflyLoopSource == null ||
             butterflyWingLoopClip == null)
@@ -900,18 +887,25 @@ public class SeedButterflyManager : MonoBehaviour
             return;
         }
 
+        /*
+         * Stop any previous playback before
+         * playing the wing sound.
+         */
         butterflyLoopSource.Stop();
 
         butterflyLoopSource.clip =
             butterflyWingLoopClip;
 
+        /*
+         * Play once instead of continuously looping.
+         */
         butterflyLoopSource.loop =
-            true;
+            false;
 
         butterflyLoopSource.Play();
     }
 
-    private void StopButterflyWingLoop()
+    private void StopButterflyWingSound()
     {
         if (butterflyLoopSource == null)
         {

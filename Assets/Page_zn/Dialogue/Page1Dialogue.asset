@@ -47,5 +47,4 @@ MonoBehaviour:
   - text: Keep the seed safe. We will meet again on the next page.
     holdAfter: 1.5
   collectSeedHint: Tap the Memory Seed once more to keep it safe.
-  pageCompletedHint: The Memory Seed is safe. Turn to the next page to find the Memory
-    Garden.
+  pageCompletedHint: The Memory Seed is safe. Let's find the Memory Garden.
