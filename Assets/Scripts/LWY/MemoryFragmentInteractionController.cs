@@ -110,7 +110,6 @@ public class MemoryFragmentInteractionController : MonoBehaviour
     [SerializeField] private GameObject netObject;
     [SerializeField] private Transform netTransform;
     [SerializeField] private SphereCollider netCollider;
-    [SerializeField] private Rigidbody netRigidbody;
     [SerializeField] private bool forceNetColliderIsTrigger = true;
     [SerializeField] private bool dragNetWithPointer = true;
     [SerializeField] private Transform dragPlaneReference;
@@ -519,10 +518,7 @@ public class MemoryFragmentInteractionController : MonoBehaviour
         Vector3 planeNormal = dragPlaneReference != null ? dragPlaneReference.up : -arCamera.transform.forward;
         Vector3 targetPosition = ray.GetPoint(enter) + netDragOffset + planeNormal * netLiftHeight;
 
-        if (netRigidbody != null)
-            netRigidbody.MovePosition(targetPosition);
-        else
-            netTransform.position = targetPosition;
+        netTransform.position = targetPosition;
     }
 
     private void EndNetDrag()
@@ -542,14 +538,6 @@ public class MemoryFragmentInteractionController : MonoBehaviour
         netTransform.localPosition = netStartLocalPosition;
         netTransform.localRotation = netStartLocalRotation;
         netTransform.localScale = netStartLocalScale;
-
-        if (netRigidbody != null)
-        {
-            netRigidbody.linearVelocity = Vector3.zero;
-            netRigidbody.angularVelocity = Vector3.zero;
-            netRigidbody.position = netRigidbody.transform.position;
-            netRigidbody.rotation = netRigidbody.transform.rotation;
-        }
     }
 
     private void CheckLightCaughtByNet()
@@ -946,9 +934,6 @@ public class MemoryFragmentInteractionController : MonoBehaviour
 
         if (netCollider == null && netObject != null)
             netCollider = netObject.GetComponentInChildren<SphereCollider>(true);
-
-        if (netRigidbody == null && netObject != null)
-            netRigidbody = netObject.GetComponentInChildren<Rigidbody>(true);
 
         if (netCollider != null && forceNetColliderIsTrigger)
             netCollider.isTrigger = true;

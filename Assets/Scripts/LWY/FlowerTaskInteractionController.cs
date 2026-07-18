@@ -68,6 +68,10 @@ public class FlowerTaskInteractionController : MonoBehaviour
     public Transform DropSnapPoint;
     public float DropAcceptDistance = 0.05f;
     public bool SnapToDropPoint = true;
+    [Tooltip("Optional plane transform for final flower dragging. The flower moves on this plane; the transform's up axis is the plane normal.")]
+    public Transform FlowerDragPlaneReference;
+    [Tooltip("When enabled, the dragged flower is projected onto FlowerDragPlaneReference instead of keeping its original depth offset.")]
+    public bool KeepFlowerOnDragPlaneReference = true;
 
     [Header("Scene Models")]
     public GameObject[] ModelsToHideDuringTask = new GameObject[0];
@@ -125,6 +129,8 @@ public class FlowerTaskInteractionController : MonoBehaviour
     readonly Dictionary<GameObject, Vector3> mOriginalOrbScales = new Dictionary<GameObject, Vector3>();
     Plane mDragPlane;
     Vector3 mDragOffset;
+    Vector3 mDragPlaneNormal;
+    bool mUsingFlowerDragPlaneReference;
     Vector3 mFlowerStartLocalPosition;
     Quaternion mFlowerStartLocalRotation;
     int mCurrentTaskIndex = -1;
@@ -474,12 +480,24 @@ public class FlowerTaskInteractionController : MonoBehaviour
         if (FlowerObject == null)
             return;
 
+        ResolveInteractionCamera();
+        if (InteractionCamera == null)
+        {
+            LogDebug("Cannot drag flower because InteractionCamera is not assigned.");
+            return;
+        }
+
         Ray ray = InteractionCamera.ScreenPointToRay(screenPosition);
-        mDragPlane = new Plane(-InteractionCamera.transform.forward, FlowerObject.transform.position);
+        SetupFlowerDragPlane();
 
         float enter;
         if (mDragPlane.Raycast(ray, out enter))
+        {
             mDragOffset = FlowerObject.transform.position - ray.GetPoint(enter);
+
+            if (mUsingFlowerDragPlaneReference && KeepFlowerOnDragPlaneReference)
+                mDragOffset = Vector3.ProjectOnPlane(mDragOffset, mDragPlaneNormal);
+        }
         else
             mDragOffset = Vector3.zero;
 
@@ -492,10 +510,40 @@ public class FlowerTaskInteractionController : MonoBehaviour
         if (FlowerObject == null)
             return;
 
+        ResolveInteractionCamera();
+        if (InteractionCamera == null)
+            return;
+
         Ray ray = InteractionCamera.ScreenPointToRay(screenPosition);
         float enter;
         if (mDragPlane.Raycast(ray, out enter))
-            FlowerObject.transform.position = ray.GetPoint(enter) + mDragOffset;
+        {
+            Vector3 targetPosition = ray.GetPoint(enter) + mDragOffset;
+            if (mUsingFlowerDragPlaneReference && KeepFlowerOnDragPlaneReference)
+                targetPosition -= mDragPlaneNormal * mDragPlane.GetDistanceToPoint(targetPosition);
+
+            FlowerObject.transform.position = targetPosition;
+        }
+    }
+
+    void SetupFlowerDragPlane()
+    {
+        mUsingFlowerDragPlaneReference = FlowerDragPlaneReference != null;
+
+        if (mUsingFlowerDragPlaneReference)
+        {
+            mDragPlaneNormal = FlowerDragPlaneReference.up;
+            if (mDragPlaneNormal.sqrMagnitude <= 0.0001f)
+                mDragPlaneNormal = -InteractionCamera.transform.forward;
+
+            mDragPlaneNormal.Normalize();
+            mDragPlane = new Plane(mDragPlaneNormal, FlowerDragPlaneReference.position);
+            return;
+        }
+
+        mDragPlaneNormal = -InteractionCamera.transform.forward;
+        mDragPlaneNormal.Normalize();
+        mDragPlane = new Plane(mDragPlaneNormal, FlowerObject.transform.position);
     }
 
     void EndFlowerDrag()

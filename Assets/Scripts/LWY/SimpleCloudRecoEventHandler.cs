@@ -12,6 +12,7 @@ public class SimpleCloudRecoEventHandler : MonoBehaviour
     GameObject mCurrentPageContent;
     Button mRegisteredNextPageButton;
     Coroutine mNextPageCanvasRoutine;
+    bool mScanPageWasVisible;
 
     [Header("Vuforia")]
     public ImageTargetBehaviour ImageTargetTemplate;
@@ -39,6 +40,9 @@ public class SimpleCloudRecoEventHandler : MonoBehaviour
     public bool MainMenuControlsFirstScanPage = true;
     public bool ShowScanPageOnStart = false;
     public bool HideScanPageWhenTargetFound = true;
+
+    [Header("Scan Gate")]
+    public bool OnlyScanWhenScanPageVisible = true;
 
     [System.Serializable]
     public class PageContent
@@ -74,7 +78,16 @@ public class SimpleCloudRecoEventHandler : MonoBehaviour
 
         if (ShowScanPageOnStart && !MainMenuControlsFirstScanPage)
             SetScanPageVisible(true);
+
+        mScanPageWasVisible = IsScanPageVisible();
+        ApplyScanPageGate(true);
     }
+
+    void Update()
+    {
+        ApplyScanPageGate(false);
+    }
+
     //Unregister cloud reco callbacks when the handler is destroyed
     void OnDestroy()
     {
@@ -113,6 +126,12 @@ public class SimpleCloudRecoEventHandler : MonoBehaviour
     {
         if (scanning)
         {
+            if (!CanScanNow())
+            {
+                SetCloudRecoEnabled(false);
+                return;
+            }
+
             if (!MainMenuControlsFirstScanPage)
                 SetScanPageVisible(true);
 
@@ -124,13 +143,19 @@ public class SimpleCloudRecoEventHandler : MonoBehaviour
     // Here we handle a cloud target recognition event
     public void OnNewSearchResult(CloudRecoBehaviour.CloudRecoSearchResult cloudRecoSearchResult)
     {
+        if (!CanScanNow())
+        {
+            SetCloudRecoEnabled(false);
+            return;
+        }
+
         PlayUiOneShot(ScanSuccessClip);
 
         // Store the target metadata
         mTargetMetadata = cloudRecoSearchResult.MetaData;
 
         // Stop the scanning by disabling the behaviour
-        mCloudRecoBehaviour.enabled = false;
+        SetCloudRecoEnabled(false);
 
         if (HideScanPageWhenTargetFound)
             SetScanPageVisible(false);
@@ -157,10 +182,7 @@ public class SimpleCloudRecoEventHandler : MonoBehaviour
         ClearCurrentPage();
         mTargetMetadata = "";
 
-        if (mCloudRecoBehaviour == null)
-            return;
-
-        mCloudRecoBehaviour.enabled = true;
+        SetCloudRecoEnabled(CanScanNow());
     }
 
     public void RestartScanning()
@@ -288,6 +310,41 @@ public class SimpleCloudRecoEventHandler : MonoBehaviour
 
         if (UiAudioSource != null)
             UiAudioSource.PlayOneShot(clip, UiAudioVolume);
+    }
+
+    void ApplyScanPageGate(bool force)
+    {
+        if (!OnlyScanWhenScanPageVisible || mCloudRecoBehaviour == null)
+            return;
+
+        ResolvePageUiReferences();
+
+        bool scanPageVisible = IsScanPageVisible();
+        if (!force && scanPageVisible == mScanPageWasVisible)
+            return;
+
+        mScanPageWasVisible = scanPageVisible;
+        SetCloudRecoEnabled(scanPageVisible);
+    }
+
+    bool CanScanNow()
+    {
+        if (!OnlyScanWhenScanPageVisible)
+            return true;
+
+        ResolvePageUiReferences();
+        return IsScanPageVisible();
+    }
+
+    bool IsScanPageVisible()
+    {
+        return ScanPage != null && ScanPage.activeInHierarchy;
+    }
+
+    void SetCloudRecoEnabled(bool enabled)
+    {
+        if (mCloudRecoBehaviour != null && mCloudRecoBehaviour.enabled != enabled)
+            mCloudRecoBehaviour.enabled = enabled;
     }
 
     IEnumerator FadeNextPageCanvasRoutine(float targetAlpha)
