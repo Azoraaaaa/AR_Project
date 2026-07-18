@@ -328,12 +328,7 @@ PrefabInstance:
       propertyPath: m_Name
       value: page_lwy_1
       objectReference: {fileID: 0}
-    - target: {fileID: 5907340032382769416, guid: 090c20416814e1b458699527f7b45f2f,
-        type: 3}
-      propertyPath: m_IsActive
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 6642685729441935785, guid: 090c20416814e1b458699527f7b45f2f,
+    - target: {fileID: 5263454432811688247, guid: 090c20416814e1b458699527f7b45f2f,
         type: 3}
       propertyPath: m_IsActive
       value: 0
@@ -355,11 +350,6 @@ PrefabInstance:
         type: 3}
       propertyPath: m_Name
       value: page_lwy_2
-      objectReference: {fileID: 0}
-    - target: {fileID: 2266076682347022918, guid: 51f93eaebde638544b0ed1680baf489d,
-        type: 3}
-      propertyPath: m_IsActive
-      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 7398018631030749632, guid: 51f93eaebde638544b0ed1680baf489d,
         type: 3}

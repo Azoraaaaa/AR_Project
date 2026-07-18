@@ -16125,8 +16125,9 @@ MonoBehaviour:
   - {fileID: 7552015909455108604}
   - {fileID: 5902420193481888352}
   - {fileID: 9029718664698594560}
-  audioSource: {fileID: 0}
-  dialogueAudios: []
+  audioSource: {fileID: 3084088605051973219}
+  dialogueAudios:
+  - {fileID: 8300000, guid: 98b147024f1199640b49110a1bf68c33, type: 3}
   leafAppearSound: {fileID: 8300000, guid: 6fbd1b7fbb801fd4bbe37bad4ec51419, type: 3}
   typingSpeed: 0.05
   objectsToHide:
