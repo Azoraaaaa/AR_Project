@@ -1,7 +1,5 @@
 using UnityEngine;
-using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
-using UnityEngine.InputSystem.EnhancedTouch;
 
 [RequireComponent(typeof(Collider))]
 public class DraggableSeed : MonoBehaviour
@@ -92,13 +90,6 @@ public class DraggableSeed : MonoBehaviour
             Debug.LogError(
                 "DraggableSeed: Cannot find AR Camera."
             );
-            return;
-        }
-
-        if (EventSystem.current != null &&
-            Mouse.current != null &&
-            EventSystem.current.IsPointerOverGameObject())
-        {
             return;
         }
 
