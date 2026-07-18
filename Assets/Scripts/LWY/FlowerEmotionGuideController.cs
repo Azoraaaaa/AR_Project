@@ -466,6 +466,13 @@ public class FlowerEmotionGuideController : MonoBehaviour
         SetObjectActive(propsBarAfterImage, true);
 
         PlayOneShot(propsBarChangedClip);
+        ShowNextPageCanvas();
+    }
+
+    private void ShowNextPageCanvas()
+    {
+        if (SimpleCloudRecoEventHandler.Instance != null)
+            SimpleCloudRecoEventHandler.Instance.ShowNextPageCanvas();
     }
 
     private bool IsFlowerClicked(Vector2 screenPosition)

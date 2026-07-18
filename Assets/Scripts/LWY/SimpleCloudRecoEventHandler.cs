@@ -1,12 +1,18 @@
+using System.Collections;
 using UnityEngine;
+using UnityEngine.UI;
 using Vuforia;
 
 public class SimpleCloudRecoEventHandler : MonoBehaviour
 {
+    public static SimpleCloudRecoEventHandler Instance { get; private set; }
+
     CloudRecoBehaviour mCloudRecoBehaviour;
     bool mIsScanning = false;
     string mTargetMetadata = "";
     GameObject mCurrentPageContent;
+    Button mRegisteredNextPageButton;
+    Coroutine mNextPageCanvasRoutine;
 
     [Header("Vuforia")]
     public ImageTargetBehaviour ImageTargetTemplate;
@@ -14,6 +20,18 @@ public class SimpleCloudRecoEventHandler : MonoBehaviour
     [Header("Story Pages")]
     public PageContent[] Pages;
     public AudioSource NarrationAudioSource;
+
+    [Header("Main Canvas UI")]
+    public bool AutoFindPageUi = true;
+    public GameObject ScanPage;
+    public string ScanPageName = "ScanPage";
+    public CanvasGroup NextPageCanvas;
+    public string NextPageCanvasName = "NextPageCanvas";
+    public Button NextPageButton;
+    public string NextPageButtonName = "NextPageButton";
+    public float NextPageFadeSeconds = 0.5f;
+    public bool ShowScanPageOnStart = true;
+    public bool HideScanPageWhenTargetFound = true;
 
     [System.Serializable]
     public class PageContent
@@ -26,6 +44,8 @@ public class SimpleCloudRecoEventHandler : MonoBehaviour
     // Register cloud reco callbacks
     void Awake()
     {
+        Instance = this;
+
         mCloudRecoBehaviour = GetComponent<CloudRecoBehaviour>();
         if (mCloudRecoBehaviour == null)
         {
@@ -39,10 +59,22 @@ public class SimpleCloudRecoEventHandler : MonoBehaviour
         mCloudRecoBehaviour.RegisterOnUpdateErrorEventHandler(OnUpdateError);
         mCloudRecoBehaviour.RegisterOnStateChangedEventHandler(OnStateChanged);
         mCloudRecoBehaviour.RegisterOnNewSearchResultEventHandler(OnNewSearchResult);
+
+        ResolvePageUiReferences();
+        RegisterNextPageButtonListener();
+        SetNextPageCanvasVisibleInstant(false);
+
+        if (ShowScanPageOnStart)
+            SetScanPageVisible(true);
     }
     //Unregister cloud reco callbacks when the handler is destroyed
     void OnDestroy()
     {
+        if (Instance == this)
+            Instance = null;
+
+        UnregisterNextPageButtonListener();
+
         if (mCloudRecoBehaviour == null)
             return;
 
@@ -75,6 +107,8 @@ public class SimpleCloudRecoEventHandler : MonoBehaviour
 
         if (scanning)
         {
+            SetScanPageVisible(true);
+            SetNextPageCanvasVisibleInstant(false);
             ClearCurrentPage();
         }
     }
@@ -88,6 +122,11 @@ public class SimpleCloudRecoEventHandler : MonoBehaviour
         // Stop the scanning by disabling the behaviour
         mCloudRecoBehaviour.enabled = false;
 
+        if (HideScanPageWhenTargetFound)
+            SetScanPageVisible(false);
+
+        SetNextPageCanvasVisibleInstant(false);
+
         // Build augmentation based on target 
         if (ImageTargetTemplate)
         {
@@ -100,6 +139,11 @@ public class SimpleCloudRecoEventHandler : MonoBehaviour
 
     public void ScanNextPage()
     {
+        ResolvePageUiReferences();
+        RegisterNextPageButtonListener();
+        SetNextPageCanvasVisibleInstant(false);
+        SetScanPageVisible(true);
+
         ClearCurrentPage();
         mTargetMetadata = "";
         mIsScanning = true;
@@ -111,6 +155,33 @@ public class SimpleCloudRecoEventHandler : MonoBehaviour
     }
 
     public void RestartScanning()
+    {
+        ScanNextPage();
+    }
+
+    public void ShowNextPageCanvas()
+    {
+        ResolvePageUiReferences();
+        RegisterNextPageButtonListener();
+
+        if (NextPageCanvas == null)
+        {
+            Debug.LogWarning("SimpleCloudRecoEventHandler: NextPageCanvas is not assigned.");
+            return;
+        }
+
+        if (mNextPageCanvasRoutine != null)
+            StopCoroutine(mNextPageCanvasRoutine);
+
+        mNextPageCanvasRoutine = StartCoroutine(FadeNextPageCanvasRoutine(1f));
+    }
+
+    public void HideNextPageCanvasInstant()
+    {
+        SetNextPageCanvasVisibleInstant(false);
+    }
+
+    void OnNextPageButtonClicked()
     {
         ScanNextPage();
     }
@@ -173,6 +244,133 @@ public class SimpleCloudRecoEventHandler : MonoBehaviour
             NarrationAudioSource.Stop();
             NarrationAudioSource.clip = null;
         }
+    }
+
+    IEnumerator FadeNextPageCanvasRoutine(float targetAlpha)
+    {
+        if (NextPageCanvas == null)
+            yield break;
+
+        NextPageCanvas.gameObject.SetActive(true);
+        NextPageCanvas.interactable = false;
+        NextPageCanvas.blocksRaycasts = false;
+
+        float startAlpha = NextPageCanvas.alpha;
+        float elapsed = 0f;
+
+        while (elapsed < NextPageFadeSeconds)
+        {
+            elapsed += Time.deltaTime;
+            float t = NextPageFadeSeconds <= 0f ? 1f : Mathf.Clamp01(elapsed / NextPageFadeSeconds);
+            NextPageCanvas.alpha = Mathf.Lerp(startAlpha, targetAlpha, t * t * (3f - 2f * t));
+            yield return null;
+        }
+
+        bool visible = targetAlpha > 0.001f;
+        NextPageCanvas.alpha = targetAlpha;
+        NextPageCanvas.interactable = visible;
+        NextPageCanvas.blocksRaycasts = visible;
+
+        if (!visible)
+            NextPageCanvas.gameObject.SetActive(false);
+
+        mNextPageCanvasRoutine = null;
+    }
+
+    void SetNextPageCanvasVisibleInstant(bool visible)
+    {
+        if (mNextPageCanvasRoutine != null)
+        {
+            StopCoroutine(mNextPageCanvasRoutine);
+            mNextPageCanvasRoutine = null;
+        }
+
+        if (NextPageCanvas == null)
+            return;
+
+        NextPageCanvas.alpha = visible ? 1f : 0f;
+        NextPageCanvas.interactable = visible;
+        NextPageCanvas.blocksRaycasts = visible;
+        NextPageCanvas.gameObject.SetActive(visible);
+    }
+
+    void SetScanPageVisible(bool visible)
+    {
+        ResolvePageUiReferences();
+
+        if (ScanPage != null)
+            ScanPage.SetActive(visible);
+    }
+
+    void ResolvePageUiReferences()
+    {
+        if (!AutoFindPageUi)
+            return;
+
+        if (ScanPage == null)
+            ScanPage = FindSceneGameObject(ScanPageName);
+
+        if (NextPageCanvas == null)
+        {
+            GameObject nextPageObject = FindSceneGameObject(NextPageCanvasName);
+            if (nextPageObject != null)
+            {
+                NextPageCanvas = nextPageObject.GetComponent<CanvasGroup>();
+                if (NextPageCanvas == null)
+                    NextPageCanvas = nextPageObject.AddComponent<CanvasGroup>();
+            }
+        }
+
+        if (NextPageButton == null)
+        {
+            GameObject buttonObject = FindSceneGameObject(NextPageButtonName);
+            if (buttonObject != null)
+                NextPageButton = buttonObject.GetComponent<Button>();
+        }
+    }
+
+    void RegisterNextPageButtonListener()
+    {
+        if (NextPageButton == null || mRegisteredNextPageButton == NextPageButton)
+            return;
+
+        UnregisterNextPageButtonListener();
+        NextPageButton.onClick.AddListener(OnNextPageButtonClicked);
+        mRegisteredNextPageButton = NextPageButton;
+    }
+
+    void UnregisterNextPageButtonListener()
+    {
+        if (mRegisteredNextPageButton == null)
+            return;
+
+        mRegisteredNextPageButton.onClick.RemoveListener(OnNextPageButtonClicked);
+        mRegisteredNextPageButton = null;
+    }
+
+    GameObject FindSceneGameObject(string objectName)
+    {
+        if (string.IsNullOrEmpty(objectName))
+            return null;
+
+        GameObject activeObject = GameObject.Find(objectName);
+        if (activeObject != null)
+            return activeObject;
+
+        Transform[] transforms = Resources.FindObjectsOfTypeAll<Transform>();
+        for (int i = 0; i < transforms.Length; i++)
+        {
+            Transform target = transforms[i];
+            if (target == null || target.name != objectName)
+                continue;
+
+            if (!target.gameObject.scene.IsValid())
+                continue;
+
+            return target.gameObject;
+        }
+
+        return null;
     }
 
     void OnGUI()

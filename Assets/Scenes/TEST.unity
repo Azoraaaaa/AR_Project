@@ -273,11 +273,11 @@ MonoBehaviour:
   ImageTargetTemplate: {fileID: 1252299012}
   Pages:
   - Metadata: page_00
-    ContentPrefab: {fileID: 1926404339121232135, guid: 7261ec7114d941e46a08ad9a37a15616,
+    ContentPrefab: {fileID: 5263454432811688247, guid: 090c20416814e1b458699527f7b45f2f,
       type: 3}
     NarrationClip: {fileID: 0}
   - Metadata: abcd
-    ContentPrefab: {fileID: 7210203359792740281, guid: bee51470a6e7df74ab2d47a2c6e93b8c,
+    ContentPrefab: {fileID: 2266076682347022918, guid: 51f93eaebde638544b0ed1680baf489d,
       type: 3}
     NarrationClip: {fileID: 0}
   - Metadata: zn1
@@ -285,6 +285,16 @@ MonoBehaviour:
       type: 3}
     NarrationClip: {fileID: 0}
   NarrationAudioSource: {fileID: 687446935}
+  AutoFindPageUi: 1
+  ScanPage: {fileID: 0}
+  ScanPageName: ScanPage
+  NextPageCanvas: {fileID: 0}
+  NextPageCanvasName: NextPageCanvas
+  NextPageButton: {fileID: 0}
+  NextPageButtonName: NextPageButton
+  NextPageFadeSeconds: 0.5
+  ShowScanPageOnStart: 1
+  HideScanPageWhenTargetFound: 1
 --- !u!114 &453680370
 MonoBehaviour:
   m_ObjectHideFlags: 0
