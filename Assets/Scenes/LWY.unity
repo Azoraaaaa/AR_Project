@@ -273,6 +273,41 @@ PrefabInstance:
       propertyPath: arCamera
       value: 
       objectReference: {fileID: 1040383643}
+    - target: {fileID: 1105550156156262083, guid: 090c20416814e1b458699527f7b45f2f,
+        type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1913898539911375836, guid: 090c20416814e1b458699527f7b45f2f,
+        type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3265022216865730380, guid: 090c20416814e1b458699527f7b45f2f,
+        type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3767458689786200673, guid: 090c20416814e1b458699527f7b45f2f,
+        type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3913520446498193523, guid: 090c20416814e1b458699527f7b45f2f,
+        type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4136535085707413982, guid: 090c20416814e1b458699527f7b45f2f,
+        type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4302534487670788873, guid: 090c20416814e1b458699527f7b45f2f,
+        type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 4372419234490052159, guid: 090c20416814e1b458699527f7b45f2f,
         type: 3}
       propertyPath: m_LocalPosition.x
@@ -328,6 +363,21 @@ PrefabInstance:
       propertyPath: m_Name
       value: page_lwy_1
       objectReference: {fileID: 0}
+    - target: {fileID: 6642685729441935785, guid: 090c20416814e1b458699527f7b45f2f,
+        type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7372324323553133194, guid: 090c20416814e1b458699527f7b45f2f,
+        type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8465665945872527897, guid: 090c20416814e1b458699527f7b45f2f,
+        type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -345,6 +395,11 @@ PrefabInstance:
         type: 3}
       propertyPath: m_Name
       value: page_lwy_2
+      objectReference: {fileID: 0}
+    - target: {fileID: 2266076682347022918, guid: 51f93eaebde638544b0ed1680baf489d,
+        type: 3}
+      propertyPath: m_IsActive
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 7398018631030749632, guid: 51f93eaebde638544b0ed1680baf489d,
         type: 3}
