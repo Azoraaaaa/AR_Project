@@ -72,12 +72,14 @@ public class ConfuseCardTaskController : MonoBehaviour
     [SerializeField] private GameObject butterflyDialoguePanel;
     [SerializeField] private TMP_Text butterflyDialogueText;
     [SerializeField] private bool useVoiceClipLength = true;
+    [SerializeField] private float dialogueTypingSeconds = LwyTypewriterText.DefaultCharacterSeconds;
     [SerializeField] private DialogueLine[] introDialogue = new DialogueLine[0];
     [SerializeField] private DialogueLine[] completedDialogue = new DialogueLine[0];
 
     [Header("Hint UI")]
     [SerializeField] private GameObject hintPanel;
     [SerializeField] private TMP_Text hintText;
+    [SerializeField] private float hintTypingSeconds = LwyTypewriterText.DefaultCharacterSeconds;
 
     [TextArea(2, 4)]
     [SerializeField] private string orderCardsHintText = "Drag the cards into the correct boxes in order";
@@ -120,6 +122,7 @@ public class ConfuseCardTaskController : MonoBehaviour
     private bool subscribedToFlowerTask;
     private Coroutine taskRoutine;
     private Coroutine confuseOrbRoutine;
+    private Coroutine hintTypingRoutine;
     private Coroutine[] cardReturnRoutines = new Coroutine[0];
     private Vector2[] dragPointerOffsets = new Vector2[0];
     private Vector3 confuseOriginalScale = Vector3.one;
@@ -740,17 +743,22 @@ public class ConfuseCardTaskController : MonoBehaviour
             if (line == null)
                 continue;
 
-            if (butterflyDialogueText != null)
-                butterflyDialogueText.text = line.Text;
-
             PlayOneShot(line.VoiceClip);
 
             float seconds = Mathf.Max(0f, line.DisplaySeconds);
             if (useVoiceClipLength && line.VoiceClip != null)
                 seconds = Mathf.Max(seconds, line.VoiceClip.length);
 
-            if (seconds > 0f)
-                yield return new WaitForSeconds(seconds);
+            float typingSeconds = butterflyDialogueText != null
+                ? LwyTypewriterText.GetTypingDuration(line.Text, dialogueTypingSeconds)
+                : 0f;
+
+            if (butterflyDialogueText != null)
+                yield return LwyTypewriterText.TypeText(butterflyDialogueText, line.Text, dialogueTypingSeconds);
+
+            float remainingSeconds = Mathf.Max(0f, seconds - typingSeconds);
+            if (remainingSeconds > 0f)
+                yield return new WaitForSeconds(remainingSeconds);
         }
 
         SetDialogueVisible(false);
@@ -779,10 +787,21 @@ public class ConfuseCardTaskController : MonoBehaviour
 
     private void SetHintText(string message, bool visible)
     {
+        if (hintTypingRoutine != null)
+        {
+            StopCoroutine(hintTypingRoutine);
+            hintTypingRoutine = null;
+        }
+
         SetObjectActive(hintPanel, visible);
 
         if (hintText != null)
-            hintText.text = message;
+        {
+            if (visible && isActiveAndEnabled)
+                hintTypingRoutine = StartCoroutine(LwyTypewriterText.TypeText(hintText, message, hintTypingSeconds));
+            else
+                LwyTypewriterText.SetImmediate(hintText, message);
+        }
     }
 
     private void SetGameCanvasVisible(bool visible)

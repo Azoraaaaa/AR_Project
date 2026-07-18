@@ -29,6 +29,7 @@ public class FlowerEmotionGuideController : MonoBehaviour
     [SerializeField] private GameObject butterflyDialoguePanel;
     [SerializeField] private TMP_Text butterflyDialogueText;
     [SerializeField] private bool useVoiceClipLength = true;
+    [SerializeField] private float dialogueTypingSeconds = LwyTypewriterText.DefaultCharacterSeconds;
     [SerializeField] private DialogueLine[] openingDialogue = new DialogueLine[0];
     [SerializeField] private DialogueLine[] emotionOrbDialogue = new DialogueLine[0];
     [SerializeField] private DialogueLine[] allOrbsCompletedDialogue = new DialogueLine[0];
@@ -37,6 +38,7 @@ public class FlowerEmotionGuideController : MonoBehaviour
     [Header("Hint UI")]
     [SerializeField] private GameObject hintPanel;
     [SerializeField] private TMP_Text hintText;
+    [SerializeField] private float hintTypingSeconds = LwyTypewriterText.DefaultCharacterSeconds;
 
     [TextArea(2, 4)]
     [SerializeField] private string startFlowerHintText = "Touch the flower first";
@@ -120,6 +122,7 @@ public class FlowerEmotionGuideController : MonoBehaviour
     [SerializeField] private float audioVolume = 1f;
 
     private Coroutine currentRoutine;
+    private Coroutine hintTypingRoutine;
     private bool subscribed;
     private bool waitingForFinalFlowerClick;
 
@@ -296,16 +299,22 @@ public class FlowerEmotionGuideController : MonoBehaviour
             if (line == null)
                 continue;
 
-            if (butterflyDialogueText != null)
-                butterflyDialogueText.text = line.Text;
-
             PlayOneShot(line.VoiceClip);
 
             float seconds = Mathf.Max(0f, line.DisplaySeconds);
             if (useVoiceClipLength && line.VoiceClip != null)
                 seconds = Mathf.Max(seconds, line.VoiceClip.length);
 
-            yield return new WaitForSeconds(seconds);
+            float typingSeconds = butterflyDialogueText != null
+                ? LwyTypewriterText.GetTypingDuration(line.Text, dialogueTypingSeconds)
+                : 0f;
+
+            if (butterflyDialogueText != null)
+                yield return LwyTypewriterText.TypeText(butterflyDialogueText, line.Text, dialogueTypingSeconds);
+
+            float remainingSeconds = Mathf.Max(0f, seconds - typingSeconds);
+            if (remainingSeconds > 0f)
+                yield return new WaitForSeconds(remainingSeconds);
         }
 
         SetDialogueVisible(false);
@@ -331,7 +340,7 @@ public class FlowerEmotionGuideController : MonoBehaviour
 
     private void HideAllHints(bool playSound)
     {
-        SetObjectActive(hintPanel, false);
+        SetHintText("", false);
         SetObjectActive(placementCircleHint, false);
         SetObjectActive(orbCircleHint, false);
         SetObjectActive(fingerHint, false);
@@ -436,10 +445,21 @@ public class FlowerEmotionGuideController : MonoBehaviour
 
     private void SetHintText(string message, bool visible)
     {
+        if (hintTypingRoutine != null)
+        {
+            StopCoroutine(hintTypingRoutine);
+            hintTypingRoutine = null;
+        }
+
         SetObjectActive(hintPanel, visible);
 
         if (hintText != null)
-            hintText.text = message;
+        {
+            if (visible && isActiveAndEnabled)
+                hintTypingRoutine = StartCoroutine(LwyTypewriterText.TypeText(hintText, message, hintTypingSeconds));
+            else
+                LwyTypewriterText.SetImmediate(hintText, message);
+        }
     }
 
     private void SetObjectActive(GameObject target, bool active)

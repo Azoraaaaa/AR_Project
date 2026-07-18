@@ -63,12 +63,14 @@ public class LonelinessPhoneTaskController : MonoBehaviour
     [SerializeField] private GameObject butterflyDialoguePanel;
     [SerializeField] private TMP_Text butterflyDialogueText;
     [SerializeField] private bool useVoiceClipLength = true;
+    [SerializeField] private float dialogueTypingSeconds = LwyTypewriterText.DefaultCharacterSeconds;
     [SerializeField] private DialogueLine[] introDialogue = new DialogueLine[0];
     [SerializeField] private DialogueLine[] completedDialogue = new DialogueLine[0];
 
     [Header("Hint UI")]
     [SerializeField] private GameObject hintPanel;
     [SerializeField] private TMP_Text hintText;
+    [SerializeField] private float hintTypingSeconds = LwyTypewriterText.DefaultCharacterSeconds;
 
     [TextArea(2, 4)]
     [SerializeField] private string lonelinessHintText = "If you feel lonely, you can ask someone to stay with you";
@@ -148,6 +150,7 @@ public class LonelinessPhoneTaskController : MonoBehaviour
     private bool subscribedToFlowerTask;
     private bool avatarListenersRegistered;
     private Coroutine taskRoutine;
+    private Coroutine hintTypingRoutine;
     private Coroutine avatarRoutine;
     private Coroutine lonelyOrbRoutine;
     private Vector3 messageCanvasOriginalScale = Vector3.one;
@@ -279,7 +282,7 @@ public class LonelinessPhoneTaskController : MonoBehaviour
         SetObjectActive(phoneHintImage, false);
         SetObjectActive(receiverPickupHintImage, false);
         SetObjectActive(receiverDropHintImage, false);
-        SetObjectActive(hintPanel, false);
+        SetHintText("", false);
 
         PlayOneShot(phoneClickedClip);
 
@@ -515,16 +518,22 @@ public class LonelinessPhoneTaskController : MonoBehaviour
             if (line == null)
                 continue;
 
-            if (butterflyDialogueText != null)
-                butterflyDialogueText.text = line.Text;
-
             PlayOneShot(line.VoiceClip);
 
             float seconds = Mathf.Max(0f, line.DisplaySeconds);
             if (useVoiceClipLength && line.VoiceClip != null)
                 seconds = Mathf.Max(seconds, line.VoiceClip.length);
 
-            yield return new WaitForSeconds(seconds);
+            float typingSeconds = butterflyDialogueText != null
+                ? LwyTypewriterText.GetTypingDuration(line.Text, dialogueTypingSeconds)
+                : 0f;
+
+            if (butterflyDialogueText != null)
+                yield return LwyTypewriterText.TypeText(butterflyDialogueText, line.Text, dialogueTypingSeconds);
+
+            float remainingSeconds = Mathf.Max(0f, seconds - typingSeconds);
+            if (remainingSeconds > 0f)
+                yield return new WaitForSeconds(remainingSeconds);
         }
 
         SetDialogueVisible(false);
@@ -553,7 +562,7 @@ public class LonelinessPhoneTaskController : MonoBehaviour
 
     private void SetInitialVisibility()
     {
-        SetObjectActive(hintPanel, false);
+        SetHintText("", false);
         SetObjectActive(phoneHintImage, false);
         SetObjectActive(receiverPickupHintImage, false);
         SetObjectActive(receiverDropHintImage, false);
@@ -743,10 +752,21 @@ public class LonelinessPhoneTaskController : MonoBehaviour
 
     private void SetHintText(string message, bool visible)
     {
+        if (hintTypingRoutine != null)
+        {
+            StopCoroutine(hintTypingRoutine);
+            hintTypingRoutine = null;
+        }
+
         SetObjectActive(hintPanel, visible);
 
         if (hintText != null)
-            hintText.text = message;
+        {
+            if (visible && isActiveAndEnabled)
+                hintTypingRoutine = StartCoroutine(LwyTypewriterText.TypeText(hintText, message, hintTypingSeconds));
+            else
+                LwyTypewriterText.SetImmediate(hintText, message);
+        }
     }
 
     private void SetNextButtonLabel()

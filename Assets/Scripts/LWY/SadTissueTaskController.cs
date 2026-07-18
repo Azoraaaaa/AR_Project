@@ -43,12 +43,14 @@ public class SadTissueTaskController : MonoBehaviour
     [SerializeField] private GameObject butterflyDialoguePanel;
     [SerializeField] private TMP_Text butterflyDialogueText;
     [SerializeField] private bool useVoiceClipLength = true;
+    [SerializeField] private float dialogueTypingSeconds = LwyTypewriterText.DefaultCharacterSeconds;
     [SerializeField] private DialogueLine[] introDialogue = new DialogueLine[0];
     [SerializeField] private DialogueLine[] completedDialogue = new DialogueLine[0];
 
     [Header("Hint UI")]
     [SerializeField] private GameObject hintPanel;
     [SerializeField] private TMP_Text hintText;
+    [SerializeField] private float hintTypingSeconds = LwyTypewriterText.DefaultCharacterSeconds;
 
     [TextArea(2, 4)]
     [SerializeField] private string tissueBoxHintText = "Take a tissue";
@@ -136,6 +138,7 @@ public class SadTissueTaskController : MonoBehaviour
     private int caughtTearCount;
     private GameObject activeTear;
     private Coroutine taskRoutine;
+    private Coroutine hintTypingRoutine;
     private Coroutine tearSpawnRoutine;
     private Coroutine sadScaleRoutine;
     private Vector3 tissueStartLocalPosition;
@@ -367,7 +370,7 @@ public class SadTissueTaskController : MonoBehaviour
     private IEnumerator CompleteTaskRoutine()
     {
         state = TaskState.Complete;
-        SetObjectActive(hintPanel, false);
+        SetHintText("", false);
         StopCryingAudio();
 
         if (activeTear != null)
@@ -464,16 +467,22 @@ public class SadTissueTaskController : MonoBehaviour
             if (line == null)
                 continue;
 
-            if (butterflyDialogueText != null)
-                butterflyDialogueText.text = line.Text;
-
             PlayOneShot(line.VoiceClip);
 
             float seconds = Mathf.Max(0f, line.DisplaySeconds);
             if (useVoiceClipLength && line.VoiceClip != null)
                 seconds = Mathf.Max(seconds, line.VoiceClip.length);
 
-            yield return new WaitForSeconds(seconds);
+            float typingSeconds = butterflyDialogueText != null
+                ? LwyTypewriterText.GetTypingDuration(line.Text, dialogueTypingSeconds)
+                : 0f;
+
+            if (butterflyDialogueText != null)
+                yield return LwyTypewriterText.TypeText(butterflyDialogueText, line.Text, dialogueTypingSeconds);
+
+            float remainingSeconds = Mathf.Max(0f, seconds - typingSeconds);
+            if (remainingSeconds > 0f)
+                yield return new WaitForSeconds(remainingSeconds);
         }
 
         SetDialogueVisible(false);
@@ -530,7 +539,7 @@ public class SadTissueTaskController : MonoBehaviour
 
     private void SetInitialVisibility()
     {
-        SetObjectActive(hintPanel, false);
+        SetHintText("", false);
         SetObjectActive(tissueBoxHintImage, false);
         SetDialogueVisible(false);
     }
@@ -851,10 +860,21 @@ public class SadTissueTaskController : MonoBehaviour
 
     private void SetHintText(string message, bool visible)
     {
+        if (hintTypingRoutine != null)
+        {
+            StopCoroutine(hintTypingRoutine);
+            hintTypingRoutine = null;
+        }
+
         SetObjectActive(hintPanel, visible);
 
         if (hintText != null)
-            hintText.text = message;
+        {
+            if (visible && isActiveAndEnabled)
+                hintTypingRoutine = StartCoroutine(LwyTypewriterText.TypeText(hintText, message, hintTypingSeconds));
+            else
+                LwyTypewriterText.SetImmediate(hintText, message);
+        }
     }
 
     private void SetNextButtonLabel()
