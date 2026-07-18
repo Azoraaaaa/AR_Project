@@ -22842,8 +22842,8 @@ MonoBehaviour:
   controlAmbientLight: 1
   dayAmbientColor: {r: 0.65, g: 0.65, b: 0.65, a: 1}
   nightAmbientColor: {r: 0.08, g: 0.1, b: 0.2, a: 1}
-  sfxAudioSource: {fileID: 0}
-  timePassageClip: {fileID: 0}
+  sfxAudioSource: {fileID: 7919103298884675031}
+  timePassageClip: {fileID: 8300000, guid: 09105b1ebc9a14748ab5b7eee87bca40, type: 3}
   timePassageVolume: 1
   pageAppearDelay: 0.5
   blackOverlayImage: {fileID: 1381387090973789828}
