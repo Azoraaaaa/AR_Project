@@ -809,6 +809,12 @@ public class MemoryGardenGateManager : MonoBehaviour
             );
         }
 
+        if (SimpleCloudRecoEventHandler.Instance != null)
+        {
+            SimpleCloudRecoEventHandler.Instance
+                .ShowNextPageCanvas();
+        }
+
         sequenceBusy = false;
 
         Debug.Log(

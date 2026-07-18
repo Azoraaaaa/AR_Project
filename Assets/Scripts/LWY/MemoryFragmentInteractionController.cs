@@ -86,6 +86,10 @@ public class MemoryFragmentInteractionController : MonoBehaviour
     [SerializeField] private int showLightAreaOnDialogueLine = 3;
     [SerializeField] private int showNetOnDialogueLine = 4;
 
+    [Header("Text Typing")]
+    [SerializeField] private float dialogueTypingSeconds = LwyTypewriterText.DefaultCharacterSeconds;
+    [SerializeField] private float hintTypingSeconds = LwyTypewriterText.DefaultCharacterSeconds;
+
     [Header("Hint UI")]
     [SerializeField] private GameObject hintPanel;
     [SerializeField] private TMP_Text hintText;
@@ -156,6 +160,7 @@ public class MemoryFragmentInteractionController : MonoBehaviour
     [Header("Audio")]
     [SerializeField] private AudioSource audioSource;
     [SerializeField] private AudioClip showHintClip;
+    [SerializeField] private AudioClip netDragStartClip;
     [SerializeField] private AudioClip defaultLightCaughtClip;
     [SerializeField] private AudioClip defaultStarChangedClip;
     [SerializeField] private AudioClip finalStarRevealClip;
@@ -174,6 +179,7 @@ public class MemoryFragmentInteractionController : MonoBehaviour
 
     private InteractionState state = InteractionState.WaitingToStart;
     private Coroutine flowRoutine;
+    private Coroutine hintTypingRoutine;
     private Plane netDragPlane;
     private Vector3 netDragOffset;
     private Vector3 netStartLocalPosition;
@@ -349,17 +355,22 @@ public class MemoryFragmentInteractionController : MonoBehaviour
         if (line == null)
             yield break;
 
-        if (butterflyDialogueText != null)
-            butterflyDialogueText.text = line.Text;
-
         PlayOneShot(line.VoiceClip);
 
         float seconds = Mathf.Max(0f, line.DisplaySeconds);
         if (useVoiceClipLength && line.VoiceClip != null)
             seconds = Mathf.Max(seconds, line.VoiceClip.length);
 
-        if (seconds > 0f)
-            yield return new WaitForSeconds(seconds);
+        float typingSeconds = 0f;
+        if (butterflyDialogueText != null)
+        {
+            yield return LwyTypewriterText.TypeText(butterflyDialogueText, line.Text, dialogueTypingSeconds);
+            typingSeconds = LwyTypewriterText.GetTypingDuration(line.Text, dialogueTypingSeconds);
+        }
+
+        float remainingSeconds = seconds - typingSeconds;
+        if (remainingSeconds > 0f)
+            yield return new WaitForSeconds(remainingSeconds);
     }
 
     private void ShowLightAreaAndLights()
@@ -493,6 +504,7 @@ public class MemoryFragmentInteractionController : MonoBehaviour
 
         draggingNet = true;
         SetNetFingerHintVisible(false);
+        PlayOneShot(netDragStartClip);
     }
 
     private void DragNet(Vector2 screenPosition)
@@ -1118,10 +1130,27 @@ public class MemoryFragmentInteractionController : MonoBehaviour
 
     private void SetHintText(string message, bool visible)
     {
+        if (hintTypingRoutine != null)
+        {
+            StopCoroutine(hintTypingRoutine);
+            hintTypingRoutine = null;
+        }
+
         SetObjectActive(hintPanel, visible);
 
         if (hintText != null)
-            hintText.text = message;
+        {
+            if (visible && !string.IsNullOrEmpty(message))
+                hintTypingRoutine = StartCoroutine(TypeHintTextRoutine(message));
+            else
+                hintText.text = message;
+        }
+    }
+
+    private IEnumerator TypeHintTextRoutine(string message)
+    {
+        yield return LwyTypewriterText.TypeText(hintText, message, hintTypingSeconds);
+        hintTypingRoutine = null;
     }
 
     private void SetNetFingerHintVisible(bool visible)

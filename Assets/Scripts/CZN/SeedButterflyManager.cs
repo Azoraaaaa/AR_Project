@@ -233,9 +233,6 @@ public class SeedButterflyManager : MonoBehaviour
             butterflyLoopSource.playOnAwake =
                 false;
 
-            /*
-             * The butterfly wing sound only plays once.
-             */
             butterflyLoopSource.loop =
                 false;
 
@@ -269,10 +266,6 @@ public class SeedButterflyManager : MonoBehaviour
             yield break;
         }
 
-        /*
-         * Keep the all-memories-completed hint visible
-         * while waiting for the seed to appear.
-         */
         if (seedSparkle != null)
         {
             seedSparkle.transform.SetParent(
@@ -374,10 +367,6 @@ public class SeedButterflyManager : MonoBehaviour
             return false;
         }
 
-        /*
-         * First tap:
-         * move the seed and begin the butterfly sequence.
-         */
         if (seedStage ==
             SeedStage.WaitingForFirstTap)
         {
@@ -417,10 +406,6 @@ public class SeedButterflyManager : MonoBehaviour
             return true;
         }
 
-        /*
-         * Second tap:
-         * collect the seed and complete Page 1.
-         */
         if (seedStage ==
             SeedStage.WaitingForCollection)
         {
@@ -459,10 +444,6 @@ public class SeedButterflyManager : MonoBehaviour
             yield break;
         }
 
-        /*
-         * Detach the seed while preserving its
-         * current world position and rotation.
-         */
         seedObject.transform.SetParent(
             null,
             true
@@ -498,10 +479,6 @@ public class SeedButterflyManager : MonoBehaviour
                     progress
                 );
 
-            /*
-             * Read the destination every frame because
-             * the AR Image Target may move.
-             */
             Vector3 currentEndPosition =
                 seedDisplayPoint.position;
 
@@ -525,10 +502,6 @@ public class SeedButterflyManager : MonoBehaviour
             yield return null;
         }
 
-        /*
-         * Attach the seed to SeedDisplayPoint.
-         * It follows the AR scene, not the camera.
-         */
         seedObject.transform.SetParent(
             seedDisplayPoint,
             false
@@ -567,19 +540,11 @@ public class SeedButterflyManager : MonoBehaviour
                 "flight points is missing."
             );
 
-            /*
-             * Permit seed collection even if the
-             * butterfly references are incomplete.
-             */
             EnableSeedCollection();
 
             yield break;
         }
 
-        /*
-         * Detach the butterfly while preserving its
-         * current world-facing direction.
-         */
         butterflyObject.transform.SetParent(
             null,
             true
@@ -600,11 +565,6 @@ public class SeedButterflyManager : MonoBehaviour
         butterflyObject.SetActive(true);
 
         PlayButterflyAnimation();
-
-        /*
-         * Play the wing sound once when
-         * the butterfly starts flying.
-         */
         PlayButterflyWingOnce();
 
         Vector3 startPosition =
@@ -648,10 +608,6 @@ public class SeedButterflyManager : MonoBehaviour
                     smoothProgress
                 );
 
-            /*
-             * Keep the same facing direction during
-             * the complete flight.
-             */
             butterflyObject.transform.rotation =
                 butterflyFlightRotation;
 
@@ -664,10 +620,6 @@ public class SeedButterflyManager : MonoBehaviour
         butterflyObject.transform.rotation =
             butterflyFlightRotation;
 
-        /*
-         * Parent the butterfly to the final point while
-         * preserving its current world rotation.
-         */
         butterflyObject.transform.SetParent(
             butterflyEndPoint,
             true
@@ -678,12 +630,6 @@ public class SeedButterflyManager : MonoBehaviour
 
         butterflyObject.transform.localScale =
             butterflyOriginalScale;
-
-        /*
-         * Do not set localRotation to Quaternion.identity.
-         * This prevents the butterfly from turning
-         * when it reaches the destination.
-         */
 
         yield return new WaitForSeconds(
             0.5f
@@ -777,18 +723,10 @@ public class SeedButterflyManager : MonoBehaviour
 
             seedObject.SetActive(false);
 
-            /*
-             * Restore the scale in case the scene
-             * is reset or replayed later.
-             */
             seedObject.transform.localScale =
                 seedOriginalScale;
         }
 
-        /*
-         * Stop the wing sound if the clip is still playing.
-         * If it has already finished, this has no effect.
-         */
         StopButterflyWingSound();
 
         if (butterflyObject != null)
@@ -800,6 +738,12 @@ public class SeedButterflyManager : MonoBehaviour
         {
             dialogueController
                 .ShowPageCompletedHint();
+        }
+
+        if (SimpleCloudRecoEventHandler.Instance != null)
+        {
+            SimpleCloudRecoEventHandler.Instance
+                .ShowNextPageCanvas();
         }
 
         Debug.Log(
@@ -887,18 +831,11 @@ public class SeedButterflyManager : MonoBehaviour
             return;
         }
 
-        /*
-         * Stop any previous playback before
-         * playing the wing sound.
-         */
         butterflyLoopSource.Stop();
 
         butterflyLoopSource.clip =
             butterflyWingLoopClip;
 
-        /*
-         * Play once instead of continuously looping.
-         */
         butterflyLoopSource.loop =
             false;
 
@@ -931,9 +868,16 @@ public class SeedButterflyManager : MonoBehaviour
             1f - t;
 
         return
-            inverseT * inverseT * start +
-            2f * inverseT * t * control +
-            t * t * end;
+            inverseT *
+            inverseT *
+            start +
+            2f *
+            inverseT *
+            t *
+            control +
+            t *
+            t *
+            end;
     }
 
     private IEnumerator ScaleObject(
