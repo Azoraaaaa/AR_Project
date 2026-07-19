@@ -1,23 +1,37 @@
+using System;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
 [RequireComponent(typeof(Collider))]
 public class DraggableSeed : MonoBehaviour
 {
-    [Header("拖动设置")]
+    [Header("Drag Settings")]
     [SerializeField] private Camera arCamera;
 
     [Tooltip("建议拖入 Prefab 内的 ContentRoot")]
     [SerializeField] private Transform dragPlaneReference;
 
+    [Tooltip("拖动时稍微抬高，避免与桌面重叠")]
     [SerializeField] private float liftHeight = 0.01f;
+
+    [Tooltip("0 = 完全跟手；20~30 = 稍微平滑")]
+    [SerializeField] private float dragSmoothSpeed = 0f;
 
     [Tooltip("放错位置后是否返回原位")]
     [SerializeField] private bool returnToStartPosition = true;
 
-    [Header("目标花盆")]
+    [Header("Raycast")]
+    [Tooltip("测试阶段建议 Everything")]
+    [SerializeField] private LayerMask raycastLayers = ~0;
+
+    [SerializeField] private float rayDistance = 100f;
+
+    [Header("Target Planting Zone")]
     [Tooltip("拖入同一 Prefab 内的 PlantingTrigger")]
     [SerializeField] private PlantingZone targetPlantingZone;
+
+    [Header("Debug")]
+    [SerializeField] private bool showDebugLogs = false;
 
     private Rigidbody seedRigidbody;
 
@@ -27,228 +41,638 @@ public class DraggableSeed : MonoBehaviour
     private Plane dragPlane;
     private Vector3 dragOffset;
 
+    private Vector3 targetDragPosition;
+
     private bool isDragging;
+
     private PlantingZone currentPlantingZone;
+
+    // =========================================================
+    // Unity
+    // =========================================================
 
     private void Awake()
     {
-        seedRigidbody = GetComponent<Rigidbody>();
+        seedRigidbody =
+            GetComponent<Rigidbody>();
 
-        originalLocalPosition = transform.localPosition;
-        originalLocalRotation = transform.localRotation;
+        originalLocalPosition =
+            transform.localPosition;
 
-        // Prefab 不直接保存 Scene AR Camera 引用
-        if (arCamera == null)
-        {
-            arCamera = Camera.main;
-        }
+        originalLocalRotation =
+            transform.localRotation;
 
-        if (arCamera == null)
-        {
-#if UNITY_2023_1_OR_NEWER
-            arCamera = FindFirstObjectByType<Camera>();
-#else
-            arCamera = FindObjectOfType<Camera>();
-#endif
-        }
+        FindCamera();
 
         if (seedRigidbody != null)
         {
             seedRigidbody.useGravity = false;
             seedRigidbody.isKinematic = true;
+
+            /*
+             * 拖动由 Transform 控制，
+             * 不需要 Rigidbody 插值。
+             */
+            seedRigidbody.interpolation =
+                RigidbodyInterpolation.None;
+        }
+    }
+
+    private void OnEnable()
+    {
+        if (arCamera == null)
+        {
+            FindCamera();
         }
     }
 
     private void Update()
     {
+        /*
+         * 如果已经种植完成，
+         * 不再允许拖动。
+         */
         if (targetPlantingZone != null &&
             targetPlantingZone.HasPlanted)
         {
             return;
         }
 
-        if (PointerDown(out Vector2 pointerPosition))
+        /*
+         * 尚未开始拖动。
+         */
+        if (!isDragging)
         {
-            TryStartDragging(pointerPosition);
+            if (PointerDown(
+                out Vector2 pointerPosition))
+            {
+                TryStartDragging(
+                    pointerPosition
+                );
+            }
+
+            return;
         }
 
-        if (isDragging && PointerHeld(out pointerPosition))
+        /*
+         * 正在拖动。
+         */
+        if (PointerHeld(
+            out Vector2 heldPosition))
         {
-            DragSeed(pointerPosition);
+            UpdateDragTarget(
+                heldPosition
+            );
         }
 
-        if (isDragging && PointerUp(out pointerPosition))
+        /*
+         * 每个渲染帧直接更新位置。
+         */
+        ApplyDragMovement();
+
+        /*
+         * 松手。
+         */
+        if (PointerUp(
+            out Vector2 releasePosition))
         {
             StopDragging();
         }
     }
 
-    private void TryStartDragging(Vector2 screenPosition)
+    // =========================================================
+    // Start Drag
+    // =========================================================
+
+    private void TryStartDragging(
+        Vector2 screenPosition)
     {
+        if (arCamera == null)
+        {
+            FindCamera();
+        }
+
         if (arCamera == null)
         {
             Debug.LogError(
                 "DraggableSeed: Cannot find AR Camera."
             );
+
             return;
         }
 
         Ray ray =
-            arCamera.ScreenPointToRay(screenPosition);
+            arCamera.ScreenPointToRay(
+                screenPosition
+            );
 
-        if (!Physics.Raycast(ray, out RaycastHit hit))
+        /*
+         * 使用 RaycastAll，
+         * 防止桌子、花盆或其他 Collider
+         * 挡在种子前面导致点不到。
+         */
+        RaycastHit[] hits =
+            Physics.RaycastAll(
+                ray,
+                rayDistance,
+                raycastLayers,
+                QueryTriggerInteraction.Collide
+            );
+
+        if (hits == null ||
+            hits.Length == 0)
+        {
+            if (showDebugLogs)
+            {
+                Debug.Log(
+                    $"{name}: Raycast hit nothing."
+                );
+            }
+
             return;
+        }
 
-        bool clickedThisSeed =
-            hit.transform == transform ||
-            hit.transform.IsChildOf(transform);
+        Array.Sort(
+            hits,
+            (a, b) =>
+                a.distance.CompareTo(
+                    b.distance
+                )
+        );
+
+        bool clickedThisSeed = false;
+
+        foreach (RaycastHit hit in hits)
+        {
+            if (hit.collider == null)
+                continue;
+
+            DraggableSeed hitSeed =
+                hit.collider
+                    .GetComponentInParent
+                    <DraggableSeed>();
+
+            if (showDebugLogs)
+            {
+                Debug.Log(
+                    $"{name}: Ray hit " +
+                    $"{hit.collider.name}"
+                );
+            }
+
+            if (hitSeed == this)
+            {
+                clickedThisSeed = true;
+                break;
+            }
+        }
 
         if (!clickedThisSeed)
+        {
             return;
+        }
 
         isDragging = true;
 
-        // 拿起音效由不会消失的 PlantingZone 播放
+        /*
+         * 清除可能残留的 Trigger 状态。
+         */
+        currentPlantingZone = null;
+
+        /*
+         * 拿起音效由 PlantingZone 播放。
+         */
         if (targetPlantingZone != null)
         {
             targetPlantingZone.OnSeedPickedUp();
         }
 
+        /*
+         * 保留你原来的拖动平面逻辑。
+         *
+         * 有 DragPlaneReference：
+         * 使用 dragPlaneReference.up
+         *
+         * 没有：
+         * 使用 Camera.forward
+         */
         Vector3 planeNormal =
             dragPlaneReference != null
                 ? dragPlaneReference.up
                 : arCamera.transform.forward;
 
-        dragPlane = new Plane(
-            planeNormal,
-            transform.position
-        );
-
-        if (dragPlane.Raycast(ray, out float enter))
+        if (planeNormal.sqrMagnitude <
+            0.000001f)
         {
-            Vector3 hitPoint = ray.GetPoint(enter);
-            dragOffset = transform.position - hitPoint;
+            planeNormal =
+                arCamera.transform.forward;
+        }
+
+        planeNormal.Normalize();
+
+        dragPlane =
+            new Plane(
+                planeNormal,
+                transform.position
+            );
+
+        if (!dragPlane.Raycast(
+            ray,
+            out float enter))
+        {
+            isDragging = false;
+
+            if (showDebugLogs)
+            {
+                Debug.LogWarning(
+                    $"{name}: Could not hit drag plane."
+                );
+            }
+
+            return;
+        }
+
+        Vector3 hitPoint =
+            ray.GetPoint(enter);
+
+        /*
+         * 保存点击点和种子中心的偏移，
+         * 防止按下时种子突然跳到手指中心。
+         */
+        dragOffset =
+            transform.position -
+            hitPoint;
+
+        targetDragPosition =
+            transform.position;
+
+        if (showDebugLogs)
+        {
+            Debug.Log(
+                $"{name}: Seed drag started."
+            );
         }
     }
 
-    private void DragSeed(Vector2 screenPosition)
+    // =========================================================
+    // Update Drag Target
+    // =========================================================
+
+    private void UpdateDragTarget(
+        Vector2 screenPosition)
     {
         if (arCamera == null)
             return;
 
         Ray ray =
-            arCamera.ScreenPointToRay(screenPosition);
+            arCamera.ScreenPointToRay(
+                screenPosition
+            );
 
-        if (!dragPlane.Raycast(ray, out float enter))
+        if (!dragPlane.Raycast(
+            ray,
+            out float enter))
+        {
             return;
+        }
 
-        Vector3 hitPoint = ray.GetPoint(enter);
+        Vector3 hitPoint =
+            ray.GetPoint(enter);
 
+        /*
+         * 继续保持你原来的 planeNormal。
+         */
         Vector3 planeNormal =
             dragPlaneReference != null
                 ? dragPlaneReference.up
                 : arCamera.transform.forward;
 
-        Vector3 targetPosition =
+        if (planeNormal.sqrMagnitude <
+            0.000001f)
+        {
+            planeNormal =
+                arCamera.transform.forward;
+        }
+
+        planeNormal.Normalize();
+
+        targetDragPosition =
             hitPoint +
             dragOffset +
-            planeNormal * liftHeight;
+            planeNormal *
+            liftHeight;
+    }
 
-        if (seedRigidbody != null)
+    // =========================================================
+    // Apply Movement
+    // =========================================================
+
+    private void ApplyDragMovement()
+    {
+        if (!isDragging)
+            return;
+
+        /*
+         * 重点优化：
+         *
+         * 不再使用：
+         * seedRigidbody.MovePosition(...)
+         *
+         * 直接使用 Transform，
+         * 和 Update 渲染帧同步，
+         * 拖动会明显更顺滑。
+         */
+        if (dragSmoothSpeed <= 0f)
         {
-            seedRigidbody.MovePosition(targetPosition);
+            transform.position =
+                targetDragPosition;
         }
         else
         {
-            transform.position = targetPosition;
+            /*
+             * 可选平滑模式。
+             *
+             * 建议 20~30。
+             */
+            float smoothing =
+                1f -
+                Mathf.Exp(
+                    -dragSmoothSpeed *
+                    Time.unscaledDeltaTime
+                );
+
+            transform.position =
+                Vector3.Lerp(
+                    transform.position,
+                    targetDragPosition,
+                    smoothing
+                );
         }
     }
 
+    // =========================================================
+    // Stop Drag
+    // =========================================================
+
     private void StopDragging()
     {
+        if (!isDragging)
+            return;
+
         isDragging = false;
 
+        /*
+         * Transform 直接移动后，
+         * 松手时同步一次 Physics。
+         */
         Physics.SyncTransforms();
 
+        /*
+         * 这里不只依赖 TriggerEnter，
+         * 最后再检查一次当前是否与目标区域重叠。
+         */
         bool isInsideCorrectZone =
             currentPlantingZone != null &&
-            currentPlantingZone == targetPlantingZone;
+            currentPlantingZone ==
+            targetPlantingZone;
 
         if (isInsideCorrectZone)
         {
             /*
-             * PlantSeed 内会播放：
-             * 1. Grab 音效
-             * 2. Success 音效
+             * PlantSeed 内负责：
+             * Grab / Success 等对应音效和流程。
              */
             bool planted =
-                currentPlantingZone.PlantSeed(gameObject);
+                currentPlantingZone
+                    .PlantSeed(
+                        gameObject
+                    );
 
             if (planted)
+            {
+                if (showDebugLogs)
+                {
+                    Debug.Log(
+                        $"{name}: Seed planted successfully."
+                    );
+                }
+
                 return;
+            }
         }
 
-        // 没有放到正确位置，返回原位
+        /*
+         * 没放到正确花盆，
+         * 返回原位。
+         */
         if (returnToStartPosition)
         {
-            transform.localPosition =
-                originalLocalPosition;
-
-            transform.localRotation =
-                originalLocalRotation;
+            ReturnToOriginalPosition();
         }
 
-        // 返回原位，同时播放放下的 Grab 音效
+        /*
+         * 返回时播放放下 / Grab 音效。
+         */
         if (targetPlantingZone != null)
         {
             targetPlantingZone.OnSeedReturned();
         }
     }
 
-    private void OnTriggerEnter(Collider other)
+    // =========================================================
+    // Return
+    // =========================================================
+
+    private void ReturnToOriginalPosition()
+    {
+        transform.localPosition =
+            originalLocalPosition;
+
+        transform.localRotation =
+            originalLocalRotation;
+
+        targetDragPosition =
+            transform.position;
+
+        currentPlantingZone = null;
+
+        if (seedRigidbody != null)
+        {
+            seedRigidbody.linearVelocity =
+                Vector3.zero;
+
+            seedRigidbody.angularVelocity =
+                Vector3.zero;
+        }
+
+        Physics.SyncTransforms();
+
+        if (showDebugLogs)
+        {
+            Debug.Log(
+                $"{name}: Seed returned to start."
+            );
+        }
+    }
+
+    // =========================================================
+    // Planting Zone Detection
+    // =========================================================
+
+    private void OnTriggerEnter(
+        Collider other)
     {
         PlantingZone zone =
-            other.GetComponent<PlantingZone>();
+            other.GetComponentInParent
+            <PlantingZone>();
+
+        if (zone == null)
+            return;
+
+        currentPlantingZone =
+            zone;
+
+        if (showDebugLogs)
+        {
+            Debug.Log(
+                $"{name}: Entered planting zone " +
+                $"{zone.name}"
+            );
+        }
+    }
+
+    private void OnTriggerStay(
+        Collider other)
+    {
+        /*
+         * 加 OnTriggerStay：
+         *
+         * Transform 快速拖动时，
+         * TriggerEnter 有可能因为 Physics 更新频率
+         * 没及时记录。
+         */
+        PlantingZone zone =
+            other.GetComponentInParent
+            <PlantingZone>();
 
         if (zone != null)
         {
-            currentPlantingZone = zone;
+            currentPlantingZone =
+                zone;
         }
     }
 
-    private void OnTriggerExit(Collider other)
+    private void OnTriggerExit(
+        Collider other)
     {
         PlantingZone zone =
-            other.GetComponent<PlantingZone>();
+            other.GetComponentInParent
+            <PlantingZone>();
 
         if (zone != null &&
-            zone == currentPlantingZone)
+            zone ==
+            currentPlantingZone)
         {
-            currentPlantingZone = null;
+            if (showDebugLogs)
+            {
+                Debug.Log(
+                    $"{name}: Exited planting zone " +
+                    $"{zone.name}"
+                );
+            }
+
+            currentPlantingZone =
+                null;
         }
     }
 
-    private bool PointerDown(out Vector2 position)
-    {
-        position = Vector2.zero;
+    // =========================================================
+    // Camera
+    // =========================================================
 
+    private void FindCamera()
+    {
+        /*
+         * Prefab 不保存 Scene ARCamera 引用，
+         * 运行时优先找 MainCamera。
+         */
+        if (arCamera != null &&
+            arCamera.isActiveAndEnabled)
+        {
+            return;
+        }
+
+        arCamera =
+            Camera.main;
+
+        if (arCamera == null)
+        {
+#if UNITY_2023_1_OR_NEWER
+            arCamera =
+                FindFirstObjectByType<Camera>();
+#else
+            arCamera =
+                FindObjectOfType<Camera>();
+#endif
+        }
+
+        if (arCamera == null)
+        {
+            Debug.LogError(
+                $"{name}: AR Camera not found. " +
+                "Make sure Vuforia ARCamera " +
+                "uses the MainCamera tag."
+            );
+        }
+        else if (showDebugLogs)
+        {
+            Debug.Log(
+                $"{name}: Using Camera " +
+                $"{arCamera.name}"
+            );
+        }
+    }
+
+    // =========================================================
+    // Input
+    // =========================================================
+
+    private bool PointerDown(
+        out Vector2 position)
+    {
+        position =
+            Vector2.zero;
+
+        /*
+         * Touch
+         */
         if (Touchscreen.current != null)
         {
             var touch =
-                Touchscreen.current.primaryTouch;
+                Touchscreen.current
+                    .primaryTouch;
 
-            if (touch.press.wasPressedThisFrame)
+            if (touch.press
+                .wasPressedThisFrame)
             {
-                position = touch.position.ReadValue();
+                position =
+                    touch.position
+                        .ReadValue();
+
                 return true;
             }
         }
 
+        /*
+         * Mouse
+         */
         if (Mouse.current != null &&
-            Mouse.current.leftButton.wasPressedThisFrame)
+            Mouse.current.leftButton
+                .wasPressedThisFrame)
         {
             position =
-                Mouse.current.position.ReadValue();
+                Mouse.current.position
+                    .ReadValue();
 
             return true;
         }
@@ -256,25 +680,41 @@ public class DraggableSeed : MonoBehaviour
         return false;
     }
 
-    private bool PointerHeld(out Vector2 position)
+    private bool PointerHeld(
+        out Vector2 position)
     {
-        position = Vector2.zero;
+        position =
+            Vector2.zero;
 
-        if (Touchscreen.current != null &&
-            Touchscreen.current.primaryTouch.press.isPressed)
+        /*
+         * Touch
+         */
+        if (Touchscreen.current != null)
         {
-            position =
-                Touchscreen.current.primaryTouch
-                    .position.ReadValue();
+            var touch =
+                Touchscreen.current
+                    .primaryTouch;
 
-            return true;
+            if (touch.press.isPressed)
+            {
+                position =
+                    touch.position
+                        .ReadValue();
+
+                return true;
+            }
         }
 
+        /*
+         * Mouse
+         */
         if (Mouse.current != null &&
-            Mouse.current.leftButton.isPressed)
+            Mouse.current.leftButton
+                .isPressed)
         {
             position =
-                Mouse.current.position.ReadValue();
+                Mouse.current.position
+                    .ReadValue();
 
             return true;
         }
@@ -282,26 +722,43 @@ public class DraggableSeed : MonoBehaviour
         return false;
     }
 
-    private bool PointerUp(out Vector2 position)
+    private bool PointerUp(
+        out Vector2 position)
     {
-        position = Vector2.zero;
+        position =
+            Vector2.zero;
 
+        /*
+         * Touch
+         */
         if (Touchscreen.current != null)
         {
             var touch =
-                Touchscreen.current.primaryTouch;
+                Touchscreen.current
+                    .primaryTouch;
 
-            if (touch.press.wasReleasedThisFrame)
+            if (touch.press
+                .wasReleasedThisFrame)
             {
-                position = touch.position.ReadValue();
+                position =
+                    touch.position
+                        .ReadValue();
+
                 return true;
             }
         }
 
+        /*
+         * Mouse
+         */
         if (Mouse.current != null &&
-            Mouse.current.leftButton.wasReleasedThisFrame)
+            Mouse.current.leftButton
+                .wasReleasedThisFrame)
         {
-            position = Mouse.current.position.ReadValue();
+            position =
+                Mouse.current.position
+                    .ReadValue();
+
             return true;
         }
 
