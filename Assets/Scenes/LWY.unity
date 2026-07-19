@@ -273,6 +273,11 @@ PrefabInstance:
       propertyPath: arCamera
       value: 
       objectReference: {fileID: 1040383643}
+    - target: {fileID: 1493527254083029932, guid: 090c20416814e1b458699527f7b45f2f,
+        type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 4372419234490052159, guid: 090c20416814e1b458699527f7b45f2f,
         type: 3}
       propertyPath: m_LocalPosition.x
@@ -328,6 +333,31 @@ PrefabInstance:
       propertyPath: m_Name
       value: page_lwy_1
       objectReference: {fileID: 0}
+    - target: {fileID: 6719354012950125024, guid: 090c20416814e1b458699527f7b45f2f,
+        type: 3}
+      propertyPath: m_Radius
+      value: 0.025
+      objectReference: {fileID: 0}
+    - target: {fileID: 7494508405464255157, guid: 090c20416814e1b458699527f7b45f2f,
+        type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8682524586390463767, guid: 090c20416814e1b458699527f7b45f2f,
+        type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 5.77
+      objectReference: {fileID: 0}
+    - target: {fileID: 8682524586390463767, guid: 090c20416814e1b458699527f7b45f2f,
+        type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 1.73
+      objectReference: {fileID: 0}
+    - target: {fileID: 8682524586390463767, guid: 090c20416814e1b458699527f7b45f2f,
+        type: 3}
+      propertyPath: m_LocalPosition.z
+      value: -6.2
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -349,7 +379,7 @@ PrefabInstance:
     - target: {fileID: 2266076682347022918, guid: 51f93eaebde638544b0ed1680baf489d,
         type: 3}
       propertyPath: m_IsActive
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 7398018631030749632, guid: 51f93eaebde638544b0ed1680baf489d,
         type: 3}

@@ -94,7 +94,6 @@ public class LonelinessPhoneTaskController : MonoBehaviour
 
     [Header("Receiver")]
     [SerializeField] private Transform receiverObject;
-    [SerializeField] private Rigidbody receiverRigidbody;
     [SerializeField] private Transform receiverStartPoint;
     [SerializeField] private bool useReceiverStartPointOverride;
     [SerializeField] private Transform receiverDropTarget;
@@ -334,10 +333,7 @@ public class LonelinessPhoneTaskController : MonoBehaviour
         Vector3 planeNormal = dragPlaneReference != null ? dragPlaneReference.up : -arCamera.transform.forward;
         Vector3 targetPosition = ray.GetPoint(enter) + receiverDragOffset + planeNormal * receiverLiftHeight;
 
-        if (receiverRigidbody != null)
-            receiverRigidbody.MovePosition(targetPosition);
-        else
-            receiverObject.position = targetPosition;
+        receiverObject.position = targetPosition;
     }
 
     private void EndReceiverDrag()
@@ -616,11 +612,6 @@ public class LonelinessPhoneTaskController : MonoBehaviour
             receiverObject.localRotation = receiverStartLocalRotation;
         }
 
-        if (receiverRigidbody != null)
-        {
-            receiverRigidbody.linearVelocity = Vector3.zero;
-            receiverRigidbody.angularVelocity = Vector3.zero;
-        }
     }
 
     private bool IsReceiverInTarget()
